@@ -54,19 +54,9 @@ public sealed class BackupManager
     {
         BackupJobService.ValidateJob(job);
 
-        var strategy = CreateStrategy(job.Type);
+        var strategy = BackupStrategyFactory.Create(job.Type);
         var context = new BackupExecutionContext(stateManager, logger);
 
         await strategy.ExecuteAsync(job, context, cancellationToken);
-    }
-
-    private static IBackupStrategy CreateStrategy(BackupType backupType)
-    {
-        return backupType switch
-        {
-            BackupType.Complete => new CompleteBackupStrategy(),
-            BackupType.Differential => new DifferentialBackupStrategy(),
-            _ => throw new ArgumentOutOfRangeException(nameof(backupType), "Unsupported backup type.")
-        };
     }
 }
