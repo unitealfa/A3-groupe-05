@@ -1,16 +1,47 @@
 # EasySave v1.0 - ProSoft
 
-EasySave est une application console C# / .NET 8 permettant de configurer et d'exécuter jusqu'à 5 travaux de sauvegarde. Un travail contient un nom, un dossier source, un dossier cible et un type de sauvegarde : complète ou différentielle.
+EasySave est une application console C# / .NET 8 permettant de configurer et d'exécuter jusqu'à 5 travaux de sauvegarde.
 
-Le projet est structuré pour séparer l'interface console, la logique métier et la DLL de journalisation `EasyLog.dll`, afin de préparer une future version WPF/MVVM.
+Un travail de sauvegarde contient :
+
+- un nom ;
+- un dossier source ;
+- un dossier cible ;
+- un type de sauvegarde : complète ou différentielle.
+
+Le projet est structuré pour séparer :
+
+- l'interface console ;
+- la logique métier ;
+- la DLL de journalisation `EasyLog.dll` ;
+- les tests.
+
+Cette structure permet de préparer une future version WPF/MVVM.
+
+---
 
 ## Prérequis
 
-- .NET SDK 8.0
-- Visual Studio 2022 ou supérieur, ou la CLI `dotnet`
-- Windows, Linux ou macOS compatible .NET 8
+Avant de lancer le projet, il faut installer :
+
+- .NET SDK 8.0 ;
+- Visual Studio 2022 ou supérieur, ou la CLI `dotnet` ;
+- Git ;
+- Windows, Linux ou macOS compatible .NET 8.
+
+Pour vérifier si .NET est installé :
+
+```bash
+dotnet --version
+```
+
+Si la commande retourne une version comme `8.x.x`, c'est bon.
+
+---
 
 ## Commandes utilisées pour créer la solution
+
+Ces commandes servent uniquement si on veut recréer le projet depuis zéro.
 
 ```bash
 dotnet new sln -n EasySave
@@ -18,11 +49,17 @@ dotnet new console -n EasySave.Console -f net8.0
 dotnet new classlib -n EasySave.Core -f net8.0
 dotnet new classlib -n EasyLog -f net8.0
 dotnet new xunit -n EasySave.Tests -f net8.0
+
 dotnet sln EasySave.sln add EasySave.Console/EasySave.Console.csproj EasySave.Core/EasySave.Core.csproj EasyLog/EasyLog.csproj EasySave.Tests/EasySave.Tests.csproj
+
 dotnet add EasySave.Core/EasySave.Core.csproj reference EasyLog/EasyLog.csproj
 dotnet add EasySave.Console/EasySave.Console.csproj reference EasySave.Core/EasySave.Core.csproj
 dotnet add EasySave.Tests/EasySave.Tests.csproj reference EasySave.Core/EasySave.Core.csproj
 ```
+
+Si le projet est déjà cloné depuis GitHub, il ne faut pas relancer ces commandes.
+
+---
 
 ## Architecture
 
@@ -69,6 +106,8 @@ EasySave.sln
         └── UseCaseDiagram.puml
 ```
 
+---
+
 ## Emplacements des fichiers
 
 Les chemins sont portables et basés sur `LocalApplicationData`.
@@ -82,47 +121,430 @@ Les chemins sont portables et basés sur `LocalApplicationData`.
 
 Sous Linux, `LocalApplicationData` correspond au dossier local utilisateur utilisé par .NET.
 
-## Lancement interactif
+Le projet n'utilise pas de chemin fixe comme `c:\temp`.
+
+---
+
+# Comment mettre le projet en marche
+
+Toutes les commandes doivent être lancées depuis la racine du projet.
+
+La racine du projet est le dossier où se trouve le fichier :
+
+```text
+EasySave.sln
+```
+
+Exemple de structure attendue :
+
+```text
+EasySave.sln
+EasySave.Console/
+EasySave.Core/
+EasyLog/
+EasySave.Tests/
+README.md
+```
+
+Si vous n'êtes pas dans ce dossier, placez-vous dedans avec la commande `cd`.
+
+Exemple :
+
+```bash
+cd chemin/vers/A3-GROUPE-05
+```
+
+---
+
+## 1. Récupérer le projet depuis GitHub
+
+Si le projet n'est pas encore sur votre machine :
+
+```bash
+git clone URL_DU_REPO
+```
+
+Puis entrer dans le dossier :
+
+```bash
+cd ../A3-GROUPE-05
+```
+
+Si le projet est déjà sur votre machine, récupérer la dernière version :
+
+```bash
+git pull origin develop
+```
+
+Cette commande sert à récupérer les dernières modifications validées par le groupe.
+
+---
+
+## 2. Restaurer les dépendances
+
+Après avoir récupéré le projet, lancer :
+
+```bash
+dotnet restore EasySave.sln
+```
+
+Cette commande prépare les dépendances du projet.
+
+Elle est à lancer :
+
+- après un `git clone` ;
+- après un gros `git pull` ;
+- quand un package NuGet a été ajouté ;
+- quand le projet ne build pas à cause de dépendances manquantes.
+
+---
+
+## 3. Compiler le projet
+
+Après le restore, lancer :
+
+```bash
+dotnet build EasySave.sln -m:1
+```
+
+Cette commande vérifie que le projet compile correctement.
+
+Si le terminal affiche :
+
+```text
+Build succeeded
+```
+
+le projet est prêt à être lancé.
+
+Le `-m:1` force une compilation séquentielle. Cela peut éviter certains problèmes de compilation dans certains environnements.
+
+---
+
+# Lancement interactif
+
+Pour lancer EasySave avec le menu :
 
 ```bash
 dotnet run --project EasySave.Console
 ```
 
-Au lancement, l'utilisateur choisit la langue FR ou EN, puis peut :
+Cette commande ouvre le programme normalement.
 
+Elle est à utiliser quand on veut :
+
+- choisir la langue FR ou EN ;
 - créer un travail de sauvegarde ;
 - afficher les travaux existants ;
 - exécuter un travail précis ;
 - exécuter tous les travaux ;
 - quitter.
 
-## Exécution CLI
+Au lancement, l'utilisateur choisit la langue FR ou EN.
+
+Ensuite, il peut créer ses travaux de sauvegarde.
+
+Important : avant d'utiliser les commandes CLI, il faut d'abord avoir créé au moins un travail de sauvegarde avec le menu interactif.
+
+---
+
+# Exécution CLI
+
+Le mode CLI permet de lancer directement une ou plusieurs sauvegardes sans ouvrir le menu.
+
+Il faut utiliser ce mode seulement après avoir déjà créé des travaux de sauvegarde.
+
+Ordre normal :
+
+```text
+1. Lancer le programme en mode menu
+2. Créer les sauvegardes
+3. Fermer le programme
+4. Relancer avec une commande CLI
+```
+
+---
+
+## Lancer la sauvegarde numéro 1
 
 ```bash
 dotnet run --project EasySave.Console -- 1
+```
+
+Cette commande lance uniquement le travail de sauvegarde numéro 1.
+
+---
+
+## Lancer les sauvegardes 1 à 3
+
+```bash
 dotnet run --project EasySave.Console -- 1-3
+```
+
+Cette commande lance les sauvegardes 1, 2 et 3 dans l'ordre.
+
+---
+
+## Lancer les sauvegardes 1 et 3
+
+Sur Windows PowerShell :
+
+```powershell
+dotnet run --project EasySave.Console -- "1;3"
+```
+
+Sur Linux, Ubuntu ou macOS :
+
+```bash
 dotnet run --project EasySave.Console -- '1;3'
+```
+
+Cette commande lance uniquement les sauvegardes 1 et 3.
+
+Les guillemets sont importants, car le caractère `;` peut être compris par le terminal comme une séparation de commandes.
+
+---
+
+## Lancer toutes les sauvegardes
+
+```bash
 dotnet run --project EasySave.Console -- all
 ```
 
-Après publication, les mêmes arguments peuvent être passés à l'exécutable :
+Cette commande lance tous les travaux de sauvegarde enregistrés.
 
-```bash
-EasySave.exe 1-3
-EasySave.exe "1;3"
+---
+
+# Différence entre Windows, Linux et macOS
+
+Pendant le développement, les commandes `dotnet` sont presque les mêmes sur tous les systèmes.
+
+Sur Windows :
+
+```powershell
+dotnet run --project EasySave.Console
 ```
 
-## Build et tests
+Sur Linux ou macOS :
+
+```bash
+dotnet run --project EasySave.Console
+```
+
+La seule différence importante concerne la commande avec `1;3`.
+
+Sur Windows PowerShell :
+
+```powershell
+dotnet run --project EasySave.Console -- "1;3"
+```
+
+Sur Linux ou macOS :
+
+```bash
+dotnet run --project EasySave.Console -- '1;3'
+```
+
+Important : iOS signifie iPhone/iPad. Pour ce projet, on parle de Windows, Linux, Ubuntu ou macOS.
+
+---
+
+# Lancer après publication en fichier exécutable
+
+Pendant le développement, on utilise surtout :
+
+```bash
+dotnet run --project EasySave.Console
+```
+
+Après publication, sur Windows, on peut obtenir un fichier :
+
+```text
+EasySave.exe
+```
+
+Dans ce cas, les arguments peuvent être passés directement à l'exécutable :
+
+```powershell
+EasySave.exe
+EasySave.exe 1
+EasySave.exe 1-3
+EasySave.exe "1;3"
+EasySave.exe all
+```
+
+Sur Linux ou macOS, pendant le développement, on utilise généralement :
+
+```bash
+dotnet run --project EasySave.Console
+```
+
+---
+
+# Build et tests
+
+## Restaurer les dépendances
 
 ```bash
 dotnet restore EasySave.sln
+```
+
+Cette commande prépare les dépendances.
+
+---
+
+## Compiler le projet
+
+```bash
 dotnet build EasySave.sln -m:1
+```
+
+Cette commande vérifie que le projet compile.
+
+---
+
+## Lancer les tests
+
+```bash
 dotnet test EasySave.sln -m:1
 ```
 
-`-m:1` force un build séquentiel. Il évite certains échecs MSBuild parallèles silencieux observés dans des environnements Linux sandboxés.
+Cette commande lance les tests unitaires.
 
-## Fonctionnalités terminées
+Elle doit être utilisée :
+
+- avant de faire une Pull Request ;
+- avant de merge dans `develop` ;
+- avant de livrer le projet ;
+- après une grosse modification.
+
+---
+
+# Résumé des commandes importantes
+
+## Première utilisation
+
+```bash
+git clone URL_DU_REPO
+cd EasySave
+dotnet restore EasySave.sln
+dotnet build EasySave.sln -m:1
+```
+
+## Récupérer la dernière version
+
+```bash
+git pull origin develop
+```
+
+## Lancer le menu
+
+```bash
+dotnet run --project EasySave.Console
+```
+
+## Lancer la sauvegarde 1
+
+```bash
+dotnet run --project EasySave.Console -- 1
+```
+
+## Lancer les sauvegardes 1 à 3
+
+```bash
+dotnet run --project EasySave.Console -- 1-3
+```
+
+## Lancer les sauvegardes 1 et 3 sur Windows
+
+```powershell
+dotnet run --project EasySave.Console -- "1;3"
+```
+
+## Lancer les sauvegardes 1 et 3 sur Linux/macOS
+
+```bash
+dotnet run --project EasySave.Console -- '1;3'
+```
+
+## Lancer toutes les sauvegardes
+
+```bash
+dotnet run --project EasySave.Console -- all
+```
+
+## Lancer les tests
+
+```bash
+dotnet test EasySave.sln -m:1
+```
+
+---
+
+# À quoi sert chaque commande ?
+
+```text
+git clone URL_DU_REPO
+= récupère le projet depuis GitHub sur votre ordinateur.
+
+git pull origin develop
+= récupère les dernières modifications de la branche develop.
+
+dotnet restore EasySave.sln
+= prépare les dépendances du projet.
+
+dotnet build EasySave.sln -m:1
+= compile le projet et vérifie qu'il n'y a pas d'erreur.
+
+dotnet run --project EasySave.Console
+= lance le programme avec le menu interactif.
+
+dotnet run --project EasySave.Console -- 1
+= lance directement la sauvegarde numéro 1.
+
+dotnet run --project EasySave.Console -- 1-3
+= lance directement les sauvegardes 1, 2 et 3.
+
+dotnet run --project EasySave.Console -- "1;3"
+= lance directement les sauvegardes 1 et 3 sur Windows.
+
+dotnet run --project EasySave.Console -- '1;3'
+= lance directement les sauvegardes 1 et 3 sur Linux ou macOS.
+
+dotnet run --project EasySave.Console -- all
+= lance directement toutes les sauvegardes enregistrées.
+
+dotnet test EasySave.sln -m:1
+= lance les tests unitaires du projet.
+```
+
+---
+
+# Ordre conseillé pendant le développement
+
+Quand un membre du groupe récupère le projet :
+
+```bash
+git pull origin develop
+dotnet restore EasySave.sln
+dotnet build EasySave.sln -m:1
+dotnet run --project EasySave.Console
+```
+
+Quand il a fini une modification :
+
+```bash
+dotnet build EasySave.sln -m:1
+dotnet test EasySave.sln -m:1
+git status
+git add .
+git commit -m "feat(scope): message"
+git push origin feature/nom-de-la-branche
+```
+
+---
+
+# Fonctionnalités terminées
 
 - Architecture solution complète `Console / Core / EasyLog / Tests`.
 - Menu console FR/EN basé sur fichiers JSON.
@@ -137,7 +559,9 @@ dotnet test EasySave.sln -m:1
 - Tests unitaires initiaux pour CLI et chemins portables.
 - Diagrammes PlantUML alignés sur le code.
 
-## À finaliser par la deuxième personne
+---
+
+# À finaliser par la deuxième personne
 
 - Ajouter davantage de tests d'intégration sur de gros dossiers et lecteurs réseau.
 - Améliorer l'ergonomie console, par exemple modification/suppression de travaux.
@@ -145,7 +569,9 @@ dotnet test EasySave.sln -m:1
 - Préparer les vues et view-models de la future version WPF/MVVM.
 - Compléter la documentation utilisateur finale si le livrable demande un manuel séparé.
 
-## Checklist de validation
+---
+
+# Checklist de validation
 
 - [x] Solution .NET 8 créée
 - [x] Architecture Console/Core/EasyLog séparée
@@ -161,3 +587,26 @@ dotnet test EasySave.sln -m:1
 - [x] Ressources FR/EN
 - [x] Tests unitaires de base
 - [x] UML PlantUML
+
+---
+
+# Règle simple à retenir
+
+Pour ouvrir le programme normalement :
+
+```bash
+dotnet run --project EasySave.Console
+```
+
+Pour lancer directement des sauvegardes déjà créées :
+
+```bash
+dotnet run --project EasySave.Console -- 1-3
+```
+
+Pour vérifier que le projet est propre :
+
+```bash
+dotnet build EasySave.sln -m:1
+dotnet test EasySave.sln -m:1
+```
