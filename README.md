@@ -87,6 +87,7 @@ EasySave.sln
 │   │   └── StateManager.cs
 │   └── Strategies
 │       ├── BackupExecutionContext.cs
+│       ├── BackupStrategyFactory.cs
 │       ├── BackupStrategyRunner.cs
 │       ├── CompleteBackupStrategy.cs
 │       ├── DifferentialBackupStrategy.cs
@@ -97,8 +98,12 @@ EasySave.sln
 │   └── LogEntry.cs
 ├── EasySave.Tests
 │   ├── AppPathsTests.cs
+│   ├── BackupExecutionTests.cs
 │   └── CliArgumentParserTests.cs
 └── docs
+    ├── RELEASE_NOTES_v1.0.md
+    ├── SUPPORT.md
+    ├── USER_MANUAL.md
     └── UML
         ├── ActivityBackupProcess.puml
         ├── ClassDiagram.puml
@@ -418,6 +423,8 @@ Elle doit être utilisée :
 - avant de livrer le projet ;
 - après une grosse modification.
 
+Les tests couvrent le parser CLI, les chemins portables, la sauvegarde complète, la sauvegarde différentielle, l'écriture des logs et le fichier `state.json`.
+
 ---
 
 # Résumé des commandes importantes
@@ -542,6 +549,8 @@ git commit -m "feat(scope): message"
 git push origin feature/nom-de-la-branche
 ```
 
+
+
 ---
 
 # Fonctionnalités terminées
@@ -556,25 +565,70 @@ git push origin feature/nom-de-la-branche
 - `EasyLog.dll` séparée avec logs journaliers JSON indentés.
 - `state.json` mis à jour au début, pendant et à la fin d'une sauvegarde.
 - Parser CLI pour index unique, plage, liste et `all`.
-- Tests unitaires initiaux pour CLI et chemins portables.
+- Tests unitaires pour CLI, chemins portables, sauvegarde complète, sauvegarde différentielle, logs et state.
+- Documentation utilisateur, fiche support et release note.
 - Diagrammes PlantUML alignés sur le code.
 
 ---
 
 # À finaliser par la deuxième personne
 
-- Ajouter davantage de tests d'intégration sur de gros dossiers et lecteurs réseau.
+- Ajouter des tests manuels sur vrais lecteurs réseau selon l'environnement de l'école.
 - Améliorer l'ergonomie console, par exemple modification/suppression de travaux.
-- Ajouter une gestion plus avancée des messages i18n.
 - Préparer les vues et view-models de la future version WPF/MVVM.
-- Compléter la documentation utilisateur finale si le livrable demande un manuel séparé.
+
+---
+
+# Documentation de livraison
+
+```text
+docs/USER_MANUAL.md
+docs/SUPPORT.md
+docs/RELEASE_NOTES_v1.0.md
+docs/UML/UseCaseDiagram.puml
+docs/UML/ClassDiagram.puml
+docs/UML/SequenceExecuteBackup.puml
+docs/UML/ActivityBackupProcess.puml
+```
+
+---
+
+# Gestion Git proposée
+
+Branches attendues :
+
+- `main`
+- `develop`
+- `feature/core-backup`
+- `feature/easylog`
+- `feature/state-manager`
+- `feature/docs-uml`
+- `release/v1.0`
+
+Exemples de commits Conventional Commits :
+
+- `feat(core): add recursive backup execution`
+- `feat(easylog): write daily json logs`
+- `feat(state): update real-time backup state`
+- `test(core): cover complete and differential backups`
+- `docs(release): add v1.0 delivery documentation`
+
+Commandes de tag :
+
+```bash
+git tag -a v1.0 -m "Livrable 1 - EasySave v1.0"
+git push origin v1.0
+```
 
 ---
 
 # Checklist de validation
 
+- [x] Git OK
 - [x] Solution .NET 8 créée
 - [x] Architecture Console/Core/EasyLog séparée
+- [x] Compilation OK
+- [x] Tests OK
 - [x] Pas de logique métier dans `Program.cs`
 - [x] Pas de `Console.WriteLine` dans `EasySave.Core`
 - [x] Chemins portables sans `c:\temp`
@@ -585,7 +639,10 @@ git push origin feature/nom-de-la-branche
 - [x] `state.json` temps réel
 - [x] CLI `1`, `1-3`, `1;3`, `all`
 - [x] Ressources FR/EN
-- [x] Tests unitaires de base
+- [x] Tests unitaires parser, chemins, sauvegardes, logs et state
+- [x] Documentation utilisateur
+- [x] Fiche support
+- [x] Release note
 - [x] UML PlantUML
 
 ---
