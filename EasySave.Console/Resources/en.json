@@ -1,0 +1,18 @@
+{
+  "CreateJob": "Create a backup job",
+  "ListJobs": "Show existing jobs",
+  "RunJob": "Run one job",
+  "RunAllJobs": "Run all jobs",
+  "Quit": "Quit",
+  "InvalidChoice": "Invalid choice.",
+  "MaxJobsReached": "The maximum number of backup jobs is five.",
+  "JobName": "Backup name:",
+  "SourceDirectory": "Source directory:",
+  "TargetDirectory": "Target directory:",
+  "BackupType": "Backup type (1 Complete, 2 Differential):",
+  "JobCreated": "Backup job created.",
+  "NoJobs": "No backup jobs are configured.",
+  "JobIndex": "Job index:",
+  "BackupFinished": "Backup execution finished.",
+  "RequiredValue": "This value is required."
+}

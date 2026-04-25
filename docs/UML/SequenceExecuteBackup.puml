@@ -1,0 +1,24 @@
+@startuml
+actor User
+participant "ConsoleMenu / CLI" as Console
+participant BackupManager
+participant BackupJobService
+participant IBackupStrategy
+participant StateManager
+participant JsonLoggerService
+
+User -> Console : Run backup index
+Console -> BackupManager : ExecuteJobAsync(index)
+BackupManager -> BackupJobService : GetJobsAsync()
+BackupManager -> IBackupStrategy : ExecuteAsync(job, context)
+IBackupStrategy -> StateManager : UpdateAsync(Active)
+loop each file to copy
+  IBackupStrategy -> StateManager : Update current file
+  IBackupStrategy -> IBackupStrategy : Copy file
+  IBackupStrategy -> JsonLoggerService : LogAsync(Success/Error)
+  IBackupStrategy -> StateManager : Update progress
+end
+IBackupStrategy -> StateManager : UpdateAsync(Finished/Error)
+BackupManager --> Console : completed
+Console --> User : result message
+@enduml

@@ -1,0 +1,64 @@
+@startuml
+class BackupJob {
+  +Name : string
+  +SourceDirectory : string
+  +TargetDirectory : string
+  +Type : BackupType
+}
+
+enum BackupType {
+  Complete
+  Differential
+}
+
+class BackupManager {
+  +ExecuteJobAsync(jobIndex)
+  +ExecuteAllJobsAsync()
+  +ExecuteJobsAsync(jobIndexes)
+}
+
+class BackupJobService {
+  +GetJobsAsync()
+  +AddJobAsync(job)
+  +ValidateJob(job)
+}
+
+class BackupJobRepository {
+  +GetAllAsync()
+  +SaveAllAsync(jobs)
+}
+
+interface IBackupStrategy {
+  +ExecuteAsync(job, context)
+}
+
+class CompleteBackupStrategy
+class DifferentialBackupStrategy
+
+class StateManager {
+  +UpdateAsync(state)
+  +GetStatesAsync()
+}
+
+class BackupState
+
+interface ILoggerService {
+  +LogAsync(entry)
+}
+
+class JsonLoggerService
+class LogEntry
+
+BackupJob --> BackupType
+BackupManager --> BackupJobService
+BackupManager --> StateManager
+BackupManager --> ILoggerService
+BackupManager --> IBackupStrategy
+BackupJobService --> BackupJobRepository
+BackupJobRepository --> BackupJob
+IBackupStrategy <|.. CompleteBackupStrategy
+IBackupStrategy <|.. DifferentialBackupStrategy
+StateManager --> BackupState
+ILoggerService <|.. JsonLoggerService
+JsonLoggerService --> LogEntry
+@enduml

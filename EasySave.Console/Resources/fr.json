@@ -1,0 +1,18 @@
+{
+  "CreateJob": "Créer un travail de sauvegarde",
+  "ListJobs": "Afficher les travaux existants",
+  "RunJob": "Exécuter un travail",
+  "RunAllJobs": "Exécuter tous les travaux",
+  "Quit": "Quitter",
+  "InvalidChoice": "Choix invalide.",
+  "MaxJobsReached": "Le nombre maximum de travaux de sauvegarde est cinq.",
+  "JobName": "Nom de la sauvegarde :",
+  "SourceDirectory": "Répertoire source :",
+  "TargetDirectory": "Répertoire cible :",
+  "BackupType": "Type de sauvegarde (1 complète, 2 différentielle) :",
+  "JobCreated": "Travail de sauvegarde créé.",
+  "NoJobs": "Aucun travail de sauvegarde configuré.",
+  "JobIndex": "Index du travail :",
+  "BackupFinished": "Exécution de la sauvegarde terminée.",
+  "RequiredValue": "Cette valeur est obligatoire."
+}

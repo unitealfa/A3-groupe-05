@@ -1,0 +1,22 @@
+@startuml
+left to right direction
+actor User
+rectangle "EasySave v1.0" {
+  usecase "Choose FR/EN language" as UC1
+  usecase "Create backup job" as UC2
+  usecase "List backup jobs" as UC3
+  usecase "Run selected job" as UC4
+  usecase "Run multiple jobs from CLI" as UC5
+  usecase "Write daily JSON log" as UC6
+  usecase "Update real-time state" as UC7
+}
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+UC4 --> UC6
+UC4 --> UC7
+UC5 --> UC6
+UC5 --> UC7
+@enduml
