@@ -62,7 +62,7 @@ internal static class BackupStrategyRunner
                 await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, stopwatch.ElapsedMilliseconds, "Success"), cancellationToken);
                 await context.StateManager.UpdateAsync(state, cancellationToken);
             }
-            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 stopwatch.Stop();
                 hasError = true;
