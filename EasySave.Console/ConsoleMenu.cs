@@ -18,7 +18,6 @@ public sealed class ConsoleMenu
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        await languageSelector.InitializeAsync();
         await languageSelector.SelectLanguageAsync();
 
         var shouldContinue = true;
@@ -33,7 +32,7 @@ public sealed class ConsoleMenu
             }
             catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or DirectoryNotFoundException)
             {
-                System.Console.WriteLine(exception.Message);
+                System.Console.WriteLine(TranslateExceptionMessage(exception));
             }
         }
     }
@@ -41,7 +40,7 @@ public sealed class ConsoleMenu
     private void PrintMenu()
     {
         System.Console.WriteLine();
-        System.Console.WriteLine("EasySave v1.0");
+        System.Console.WriteLine(languageSelector.Text("AppTitle"));
         System.Console.WriteLine($"1 - {languageSelector.Text("CreateJob")}");
         System.Console.WriteLine($"2 - {languageSelector.Text("ListJobs")}");
         System.Console.WriteLine($"3 - {languageSelector.Text("RunJob")}");
@@ -159,5 +158,21 @@ public sealed class ConsoleMenu
 
             System.Console.WriteLine(languageSelector.Text("InvalidChoice"));
         }
+    }
+
+    private string TranslateExceptionMessage(Exception exception)
+    {
+        return exception switch
+        {
+            ArgumentOutOfRangeException => languageSelector.Text("BackupJobIndexOutOfRange"),
+            DirectoryNotFoundException when exception.Message.StartsWith("Source directory does not exist:", StringComparison.Ordinal) => languageSelector.Text("SourceDirectoryDoesNotExist"),
+            ArgumentException when exception.Message == "The backup name is required." => languageSelector.Text("BackupNameRequired"),
+            ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
+            ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),
+            ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),
+            InvalidOperationException when exception.Message == "The maximum number of backup jobs is five." => languageSelector.Text("MaxJobsReached"),
+            InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => languageSelector.Text("TargetDirectoryCreationFailed"),
+            _ => exception.Message
+        };
     }
 }

@@ -27,8 +27,8 @@ public sealed class LanguageSelector
 
     public async Task SelectLanguageAsync()
     {
-        System.Console.WriteLine("1 - Français");
-        System.Console.WriteLine("2 - English");
+        System.Console.WriteLine($"1 - {Text("LanguageFrench")}");
+        System.Console.WriteLine($"2 - {Text("LanguageEnglish")}");
         System.Console.Write("> ");
         var choice = System.Console.ReadLine();
 

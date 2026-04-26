@@ -57,6 +57,15 @@ public sealed class BackupJobService
             throw new ArgumentException("The target directory is required.", nameof(job));
         }
 
+        try
+        {
+            Directory.CreateDirectory(job.TargetDirectory);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            throw new InvalidOperationException($"The target directory could not be created: {job.TargetDirectory}", exception);
+        }
+
         if (!Enum.IsDefined(job.Type))
         {
             throw new ArgumentException("The backup type is invalid.", nameof(job));
