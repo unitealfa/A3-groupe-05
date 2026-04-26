@@ -3,7 +3,6 @@ obj/
 .vs/
 .vscode/
 .codex
-publish/
 TestResults/
 *.user
 *.suo
