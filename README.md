@@ -1,4 +1,4 @@
-# EasySave v1.0 - ProSoft
+# EasySave v1.1 - ProSoft
 
 EasySave est une application console C# / .NET 8 permettant de configurer et d'exécuter jusqu'à 5 travaux de sauvegarde.
 
@@ -95,7 +95,9 @@ EasySave.sln
 ├── EasyLog
 │   ├── ILoggerService.cs
 │   ├── JsonLoggerService.cs
-│   └── LogEntry.cs
+│   ├── LogFormat.cs
+│   ├── LogEntry.cs
+│   └── XmlLoggerService.cs
 ├── EasySave.Tests
 │   ├── AppPathsTests.cs
 │   ├── BackupExecutionTests.cs
@@ -118,18 +120,26 @@ EasySave.sln
 
 ## Emplacements des fichiers
 
-Les chemins sont portables et basés sur `LocalApplicationData`.
+Les fichiers de configuration et d'état restent stockés dans le dossier applicatif `LocalApplicationData`.
 
 ```text
 %LocalAppData%/ProSoft/EasySave/config/jobs.json
 %LocalAppData%/ProSoft/EasySave/config/settings.json
-%LocalAppData%/ProSoft/EasySave/logs/yyyy-MM-dd.json
 %LocalAppData%/ProSoft/EasySave/state/state.json
 ```
 
-Sous Linux, `LocalApplicationData` correspond au dossier local utilisateur utilisé par .NET.
+Les logs journaliers sont maintenant écrits dans le dossier `logs` à la racine du projet :
 
-Le projet n'utilise pas de chemin fixe comme `c:\temp`.
+```text
+A3-groupe-05/logs/yyyy-MM-dd.json
+A3-groupe-05/logs/yyyy-MM-dd.xml
+```
+
+Sous Linux, dans ce dépôt, cela correspond par exemple à :
+
+```text
+/home/mourad/Bureau/A3-groupe-05/logs
+```
 
 ---
 
@@ -242,15 +252,27 @@ Cette commande ouvre le programme normalement.
 Elle est à utiliser quand on veut :
 
 - choisir la langue FR ou EN ;
+- choisir le format de log JSON ou XML ;
 - créer un travail de sauvegarde ;
 - afficher les travaux existants ;
 - exécuter un travail précis ;
 - exécuter tous les travaux ;
 - quitter.
 
-Au lancement, l'utilisateur choisit la langue FR ou EN.
+Au lancement, l'utilisateur choisit la langue FR ou EN, puis le format du fichier log.
 
 Ensuite, il peut créer ses travaux de sauvegarde.
+
+Lors de la création d'un travail, les dossiers source et cible ne doivent plus être saisis obligatoirement à la main.
+Le programme propose une navigation simple par numéros :
+
+- choix d'un point de départ : dossier personnel, bureau, documents, téléchargements ou dossier courant du projet ;
+- ouverture des sous-dossiers ;
+- retour au dossier parent ;
+- validation du dossier courant ;
+- saisie d'un chemin personnalisé si besoin.
+
+Cela permet de parcourir facilement `Bureau`, puis un sous-dossier précis, sans sélectionner tout `Bureau` par erreur.
 
 Important : avant d'utiliser les commandes CLI, il faut d'abord avoir créé au moins un travail de sauvegarde avec le menu interactif.
 
