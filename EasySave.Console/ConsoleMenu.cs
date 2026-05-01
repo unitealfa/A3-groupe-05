@@ -18,8 +18,6 @@ public sealed class ConsoleMenu
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        await languageSelector.SelectLanguageAsync();
-
         var shouldContinue = true;
         while (shouldContinue)
         {
