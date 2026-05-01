@@ -98,6 +98,7 @@ EasySave.sln
 │   └── LogEntry.cs
 ├── EasySave.Tests
 │   ├── AppPathsTests.cs
+│   ├── BackupExecutionTests.cs
 │   ├── BackupInfrastructureTests.cs
 │   └── CliArgumentParserTests.cs
 ├── docs
@@ -425,7 +426,7 @@ Elle doit être utilisée :
 - avant de livrer le projet ;
 - après une grosse modification.
 
-Les tests couvrent le parser CLI, les chemins portables, la limite des 5 jobs, la validation d'un dossier source invalide, l'écriture des logs et le fichier `state.json`.
+Les tests couvrent le parser CLI, les chemins portables, la limite des 5 jobs, la validation d'un dossier source invalide, la sauvegarde complète, la sauvegarde différentielle, l'écriture des logs et le fichier `state.json`.
 
 ---
 
@@ -567,7 +568,7 @@ git push origin feature/nom-de-la-branche
 - `EasyLog.dll` séparée avec logs journaliers JSON indentés.
 - `state.json` mis à jour au début, pendant et à la fin d'une sauvegarde.
 - Parser CLI pour index unique, plage, liste et `all`.
-- Tests unitaires pour CLI, chemins portables, validation d'infrastructure, logs et state.
+- Tests unitaires pour CLI, chemins portables, sauvegarde complète, sauvegarde différentielle, validation d'infrastructure, logs et state.
 - Documentation utilisateur, fiche support et release note.
 - Diagrammes UML exportés en PNG.
 
@@ -614,7 +615,7 @@ Exemples de commits Conventional Commits :
 - `feat(core): add recursive backup execution`
 - `feat(easylog): write daily json logs`
 - `feat(state): update real-time backup state`
-- `test(core): cover CLI, paths, logs and state`
+- `test(core): cover complete and differential backups`
 - `docs(release): add v1.0 delivery documentation`
 
 Commandes de tag :
@@ -643,7 +644,7 @@ git push origin v1.0
 - [x] `state.json` temps réel
 - [x] CLI `1`, `1-3`, `1;3`, `all`
 - [x] Ressources FR/EN
-- [x] Tests unitaires parser, chemins, validation d'infrastructure, logs et state
+- [x] Tests unitaires parser, chemins, sauvegardes, validation d'infrastructure, logs et state
 - [x] Documentation utilisateur
 - [x] Fiche support
 - [x] Release note
