@@ -9,19 +9,19 @@ Personne ne doit travailler directement sur la branche main.
 
 La branche main doit contenir uniquement une version stable, propre et livrable du projet.
 
-Chaque membre du groupe doit travailler sur sa propre branche feature/..., puis creer une Pull Request vers develop.
+Chaque membre du groupe doit travailler sur sa propre branche feature/..., puis creer une Pull Request vers `main` ou `release/v1.0` selon le stade du livrable.
 
 Le responsable du repo verifie le code, puis valide la Pull Request.
 
 ORGANISATION DES BRANCHES
 
 main
-develop
 feature/core-backup
 feature/easylog
 feature/state-manager
-feature/docs-uml
-feature/tests
+feature/pre-release-fixes
+feature/publish-artifacts
+feature/fix-push
 release/v1.0
 
 ROLE DES BRANCHES
@@ -30,10 +30,6 @@ main
 = version finale stable du projet
 = branche protegee
 = personne ne push directement dessus
-
-develop
-= branche principale de developpement
-= contient le travail valide du groupe
 
 feature/...
 = branche de travail personnelle pour chaque fonctionnalite
@@ -52,20 +48,23 @@ feature/easylog
 feature/state-manager
 = StateManager, state.json, etat temps reel des sauvegardes
 
-feature/docs-uml
-= README, manuel utilisateur, fiche support, release note, diagrammes UML
+feature/pre-release-fixes
+= corrections de fin de livrable, localisation, validation et tests d'infrastructure
 
-feature/tests
-= tests unitaires, verification du parser CLI, logs, sauvegardes et state.json
+feature/publish-artifacts
+= ajout des artefacts publies dans `publish/`
+
+feature/fix-push
+= corrections et ajustements divers du depot
 
 DEBUTER SON TRAVAIL
 
-Avant de commencer a coder, chaque membre doit recuperer la derniere version de develop.
+Avant de commencer a coder, chaque membre doit recuperer la derniere version de `main`.
 
 Commande :
 
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 
 Ensuite, il faut creer sa branche de travail.
 
@@ -77,8 +76,8 @@ Autres exemples :
 
 git checkout -b feature/core-backup
 git checkout -b feature/state-manager
-git checkout -b feature/docs-uml
-git checkout -b feature/tests
+git checkout -b feature/pre-release-fixes
+git checkout -b feature/publish-artifacts
 
 TRAVAILLER SUR SA BRANCHE
 
@@ -134,13 +133,13 @@ Chemin :
 GitHub
 -> Pull requests
 -> New pull request
--> base: develop
+-> base: main
 -> compare: feature/nom-de-la-branche
 -> Create pull request
 
 Exemple :
 
-base: develop
+base: main
 compare: feature/easylog
 
 La Pull Request doit expliquer ce qui a ete fait.
@@ -195,8 +194,8 @@ REGLES OBLIGATOIRES
 
 Avant de commencer a travailler :
 
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 
 Avant de pousser son travail :
 
@@ -216,17 +215,17 @@ Les noms de classes, methodes, variables et commentaires doivent etre en anglais
 
 Il faut eviter les copier-coller inutiles.
 
-MISE A JOUR DE SA BRANCHE AVEC DEVELOP
+MISE A JOUR DE SA BRANCHE AVEC MAIN
 
-Si develop a change pendant que tu travailles, tu dois recuperer les changements.
+Si `main` a change pendant que tu travailles, tu dois recuperer les changements.
 
 git checkout feature/nom-de-la-branche
-git pull origin develop
+git pull origin main
 
 Exemple :
 
 git checkout feature/easylog
-git pull origin develop
+git pull origin main
 
 Ensuite, s'il y a des conflits, il faut les corriger avant de continuer.
 
@@ -240,7 +239,7 @@ Git montre souvent des zones comme ceci :
 code actuel
 =======
 code venant de l'autre branche
->>>>>>> develop
+>>>>>>> main
 
 Il faut garder le bon code, supprimer les marqueurs, puis refaire un commit.
 
@@ -333,10 +332,10 @@ Creer une branche :
 
 git checkout -b feature/nom-de-la-branche
 
-Recuperer la derniere version de develop :
+Recuperer la derniere version de `main` :
 
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 
 Envoyer sa branche sur GitHub :
 
@@ -352,10 +351,10 @@ dotnet test
 
 PREPARATION DE LA LIVRAISON V1.0
 
-Quand toutes les fonctionnalites sont terminees et validees dans develop, creer une branche de release.
+Quand toutes les fonctionnalites sont terminees et validees sur `main`, creer une branche de release.
 
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 git checkout -b release/v1.0
 git push origin release/v1.0
 
@@ -397,7 +396,7 @@ CHECKLIST FINALE
 [ ] La branche main est protegee
 [ ] Personne ne push directement sur main
 [ ] Chaque membre travaille sur une branche feature
-[ ] Les Pull Requests sont faites vers develop
+[ ] Les Pull Requests sont faites vers `main` ou `release/v1.0`
 [ ] Le code est relu avant d'etre fusionne
 [ ] EasyLog.dll est present
 [ ] Les logs JSON fonctionnent
@@ -415,8 +414,7 @@ CHECKLIST FINALE
 
 RESUME
 
-main = version finale stable
-develop = version de developpement validee
+main = version stable du depot
 feature/... = travail de chaque membre
 release/v1.0 = preparation finale du livrable
 
