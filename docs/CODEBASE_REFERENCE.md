@@ -590,6 +590,16 @@ Verifie:
 - creation et contenu minimal de `state.json`;
 - creation d'un log JSON journalier.
 
+### `BackupExecutionTests.cs`
+
+Verifie:
+
+- execution complete d'une sauvegarde avec vrais fichiers copies;
+- conservation de l'arborescence en sauvegarde complete;
+- creation des logs pendant l'execution;
+- mise a jour finale du `state.json` apres sauvegarde complete;
+- comportement de la strategie differentielle sur fichiers inchanges, modifies et manquants.
+
 ### `CliArgumentParserTests.cs`
 
 Verifie:
@@ -603,8 +613,6 @@ Verifie:
 
 Non verifies directement par tests:
 
-- execution complete d'une sauvegarde avec vrais fichiers copies;
-- comportement de la strategie differentielle;
 - traduction des messages dans `ConsoleMenu`;
 - persistance de `jobs.json`;
 - annulation via `CancellationToken`;
@@ -614,9 +622,8 @@ Non verifies directement par tests:
 
 Ecart documentation/code:
 
-- `docs/RELEASE_NOTES_v1.0.md` annonce des tests pour sauvegarde complete et differentielle;
-- dans le depot actuel, ces tests specifiques ne sont pas presents sous cette forme;
-- les tests reels verifies sont surtout `AppPaths`, `CliArgumentParser`, `StateManager`, `JsonLoggerService` et la limite de 5 jobs.
+- la couverture de sauvegarde complete et differentielle est maintenant presente via `BackupExecutionTests.cs`;
+- les sources UML restent exportees en PNG dans le depot, pas en `.puml`.
 
 ## Formats de donnees attendus
 
