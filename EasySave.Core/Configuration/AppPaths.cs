@@ -8,7 +8,7 @@ public static class AppPaths
 
     public static string ConfigDirectory => Path.Combine(BaseDirectory, "config");
 
-    public static string LogsDirectory => Path.Combine(BaseDirectory, "logs");
+    public static string LogsDirectory => Path.Combine(Directory.GetCurrentDirectory(), "logs");
 
     public static string StateDirectory => Path.Combine(BaseDirectory, "state");
 

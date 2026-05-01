@@ -40,11 +40,7 @@ public sealed class JsonLoggerService : ILoggerService
 
     private static string GetDefaultLogDirectory()
     {
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ProSoft",
-            "EasySave",
-            "logs");
+        return Path.Combine(Directory.GetCurrentDirectory(), "logs");
     }
 
     private static async Task<List<LogEntry>> ReadEntriesAsync(string filePath, CancellationToken cancellationToken)

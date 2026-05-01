@@ -82,10 +82,6 @@ public sealed class XmlLoggerService : ILoggerService
 
     private static string GetDefaultLogDirectory()
     {
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "ProSoft",
-            "EasySave",
-            "logs");
+        return Path.Combine(Directory.GetCurrentDirectory(), "logs");
     }
 }
