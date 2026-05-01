@@ -32,7 +32,7 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
-    public async Task AddJobAsyncRejectsMoreThanFiveJobs()
+    public async Task AddJobAsyncAllowsMoreThanFiveJobs()
     {
         var repository = new BackupJobRepository(Path.Combine(testRoot, "config", "jobs.json"));
         var service = new BackupJobService(repository);
@@ -40,7 +40,7 @@ public sealed class BackupInfrastructureTests : IDisposable
         var targetDirectory = Path.Combine(testRoot, "target");
         Directory.CreateDirectory(sourceDirectory);
 
-        for (var index = 0; index < BackupJobService.MaxJobs; index++)
+        for (var index = 0; index < 8; index++)
         {
             await service.AddJobAsync(new BackupJob
             {
@@ -51,13 +51,8 @@ public sealed class BackupInfrastructureTests : IDisposable
             });
         }
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddJobAsync(new BackupJob
-        {
-            Name = "Job 6",
-            SourceDirectory = sourceDirectory,
-            TargetDirectory = Path.Combine(targetDirectory, "6"),
-            Type = BackupType.Complete
-        }));
+        var jobs = await service.GetJobsAsync();
+        Assert.Equal(8, jobs.Count);
     }
 
     [Fact]
@@ -100,6 +95,7 @@ public sealed class BackupInfrastructureTests : IDisposable
             DestinationFilePath = @"D:\Target\file.txt",
             FileSize = 123,
             TransferTimeMs = 45,
+            EncryptionTimeMs = 0,
             Status = "Success"
         });
 
@@ -113,6 +109,7 @@ public sealed class BackupInfrastructureTests : IDisposable
         Assert.Contains("\"DestinationFilePath\": \"D:\\\\Target\\\\file.txt\"", content);
         Assert.Contains("\"FileSize\": 123", content);
         Assert.Contains("\"TransferTimeMs\": 45", content);
+        Assert.Contains("\"EncryptionTimeMs\": 0", content);
 
         var entries = JsonSerializer.Deserialize<List<LogEntry>>(content);
         Assert.NotNull(entries);
@@ -133,6 +130,7 @@ public sealed class BackupInfrastructureTests : IDisposable
             DestinationFilePath = @"D:\Target\xml.txt",
             FileSize = 456,
             TransferTimeMs = 78,
+            EncryptionTimeMs = 12,
             Status = "Success"
         });
 
@@ -150,6 +148,7 @@ public sealed class BackupInfrastructureTests : IDisposable
         Assert.Equal(@"D:\Target\xml.txt", logEntry.Element("DestinationFilePath")?.Value);
         Assert.Equal("456", logEntry.Element("FileSize")?.Value);
         Assert.Equal("78", logEntry.Element("TransferTimeMs")?.Value);
+        Assert.Equal("12", logEntry.Element("EncryptionTimeMs")?.Value);
         Assert.Equal("Success", logEntry.Element("Status")?.Value);
     }
 
