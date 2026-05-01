@@ -129,6 +129,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IAsyncRelayCommand RunAllJobsCommand { get; }
 
+    public int TotalJobsCount => Jobs.Count;
+
+    public int ActiveStatesCount => States.Count(state => string.Equals(state.State, "Active", StringComparison.OrdinalIgnoreCase));
+
+    public int FinishedStatesCount => States.Count(state => string.Equals(state.State, "Finished", StringComparison.OrdinalIgnoreCase));
+
+    public int BlockedStatesCount => States.Count(state => string.Equals(state.State, "Blocked", StringComparison.OrdinalIgnoreCase));
+
+    public int ErrorStatesCount => States.Count(state => string.Equals(state.State, "Error", StringComparison.OrdinalIgnoreCase));
+
     public string Translate(string key)
     {
         return Texts.TryGetValue(key, out var value) ? value : key;
@@ -183,11 +193,16 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task RefreshJobsAsync()
     {
         Jobs = new ObservableCollection<BackupJob>(await jobService.GetJobsAsync());
+        OnPropertyChanged(nameof(TotalJobsCount));
     }
 
     private async Task RefreshStatesAsync()
     {
         States = new ObservableCollection<BackupState>(await stateManager.GetStatesAsync());
+        OnPropertyChanged(nameof(ActiveStatesCount));
+        OnPropertyChanged(nameof(FinishedStatesCount));
+        OnPropertyChanged(nameof(BlockedStatesCount));
+        OnPropertyChanged(nameof(ErrorStatesCount));
     }
 
     private async Task SaveSettingsAsync()
