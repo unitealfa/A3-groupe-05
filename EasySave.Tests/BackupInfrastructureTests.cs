@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml.Linq;
 using EasyLog;
 using EasySave.Core.Configuration;
 using EasySave.Core.Models;
@@ -116,6 +117,40 @@ public sealed class BackupInfrastructureTests : IDisposable
         var entries = JsonSerializer.Deserialize<List<LogEntry>>(content);
         Assert.NotNull(entries);
         Assert.Single(entries);
+    }
+
+    [Fact]
+    public async Task XmlLoggerServiceCreatesDailyXmlLogWithMainFields()
+    {
+        var logDirectory = Path.Combine(testRoot, "xml-logs");
+        var logger = new XmlLoggerService(logDirectory);
+
+        await logger.LogAsync(new LogEntry
+        {
+            Timestamp = new DateTime(2026, 4, 26, 12, 0, 0, DateTimeKind.Local),
+            BackupName = "Job XML",
+            SourceFilePath = @"C:\Source\xml.txt",
+            DestinationFilePath = @"D:\Target\xml.txt",
+            FileSize = 456,
+            TransferTimeMs = 78,
+            Status = "Success"
+        });
+
+        var logPath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.xml");
+        Assert.True(File.Exists(logPath));
+
+        var document = XDocument.Load(logPath);
+        var logEntry = document.Root?.Element("LogEntry");
+
+        Assert.NotNull(document.Root);
+        Assert.Equal("LogEntries", document.Root!.Name.LocalName);
+        Assert.NotNull(logEntry);
+        Assert.Equal("Job XML", logEntry!.Element("BackupName")?.Value);
+        Assert.Equal(@"C:\Source\xml.txt", logEntry.Element("SourceFilePath")?.Value);
+        Assert.Equal(@"D:\Target\xml.txt", logEntry.Element("DestinationFilePath")?.Value);
+        Assert.Equal("456", logEntry.Element("FileSize")?.Value);
+        Assert.Equal("78", logEntry.Element("TransferTimeMs")?.Value);
+        Assert.Equal("Success", logEntry.Element("Status")?.Value);
     }
 
     public void Dispose()

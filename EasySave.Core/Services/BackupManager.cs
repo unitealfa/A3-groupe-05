@@ -15,7 +15,7 @@ public sealed class BackupManager
     {
     }
 
-    internal BackupManager(BackupJobService jobService, StateManager stateManager, ILoggerService logger)
+    public BackupManager(BackupJobService jobService, StateManager stateManager, ILoggerService logger)
     {
         this.jobService = jobService;
         this.stateManager = stateManager;

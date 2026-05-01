@@ -1,7 +1,10 @@
 {
-  "AppTitle": "EasySave v1.0",
+  "AppTitle": "EasySave v1.1",
   "LanguageFrench": "Français",
   "LanguageEnglish": "English",
+  "LogFormatPrompt": "Format du fichier log (1 JSON, 2 XML) :",
+  "LogFormatJson": "JSON",
+  "LogFormatXml": "XML",
   "CreateJob": "Créer un travail de sauvegarde",
   "ListJobs": "Afficher les travaux existants",
   "RunJob": "Exécuter un travail",

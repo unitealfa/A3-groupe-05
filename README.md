@@ -99,16 +99,19 @@ EasySave.sln
 ├── EasySave.Tests
 │   ├── AppPathsTests.cs
 │   ├── BackupExecutionTests.cs
+│   ├── BackupInfrastructureTests.cs
 │   └── CliArgumentParserTests.cs
-└── docs
-    ├── RELEASE_NOTES_v1.0.md
-    ├── SUPPORT.md
-    ├── USER_MANUAL.md
-    └── UML
-        ├── ActivityBackupProcess.puml
-        ├── ClassDiagram.puml
-        ├── SequenceExecuteBackup.puml
-        └── UseCaseDiagram.puml
+├── docs
+│   ├── RELEASE_NOTES_v1.0.md
+│   ├── SUPPORT.md
+│   ├── USER_MANUAL.md
+│   └── CODEBASE_REFERENCE.md
+└── diagrames UML
+    ├── Diagramme d’activité — exécution exacte d’un travail de sauvegarde.png
+    ├── Diagramme de classes.png
+    ├── Diagramme de cas d’utilisation.png
+    ├── Diagramme de composants — Architecture globale EasySave v1.0.png
+    └── Diagramme de séquence - Exécution d'une sauvegarde EasySave v1.0.png
 ```
 
 ---
@@ -178,7 +181,7 @@ cd ../A3-GROUPE-05
 Si le projet est déjà sur votre machine, récupérer la dernière version :
 
 ```bash
-git pull origin develop
+git pull origin main
 ```
 
 Cette commande sert à récupérer les dernières modifications validées par le groupe.
@@ -419,11 +422,11 @@ Cette commande lance les tests unitaires.
 Elle doit être utilisée :
 
 - avant de faire une Pull Request ;
-- avant de merge dans `develop` ;
+- avant de merge dans `main` ou `release/v1.0` ;
 - avant de livrer le projet ;
 - après une grosse modification.
 
-Les tests couvrent le parser CLI, les chemins portables, la sauvegarde complète, la sauvegarde différentielle, l'écriture des logs et le fichier `state.json`.
+Les tests couvrent le parser CLI, les chemins portables, la limite des 5 jobs, la validation d'un dossier source invalide, la sauvegarde complète, la sauvegarde différentielle, l'écriture des logs et le fichier `state.json`.
 
 ---
 
@@ -441,7 +444,7 @@ dotnet build EasySave.sln -m:1
 ## Récupérer la dernière version
 
 ```bash
-git pull origin develop
+git pull origin main
 ```
 
 ## Lancer le menu
@@ -494,8 +497,8 @@ dotnet test EasySave.sln -m:1
 git clone URL_DU_REPO
 = récupère le projet depuis GitHub sur votre ordinateur.
 
-git pull origin develop
-= récupère les dernières modifications de la branche develop.
+git pull origin main
+= récupère les dernières modifications de la branche main.
 
 dotnet restore EasySave.sln
 = prépare les dépendances du projet.
@@ -532,7 +535,7 @@ dotnet test EasySave.sln -m:1
 Quand un membre du groupe récupère le projet :
 
 ```bash
-git pull origin develop
+git pull origin main
 dotnet restore EasySave.sln
 dotnet build EasySave.sln -m:1
 dotnet run --project EasySave.Console
@@ -565,9 +568,9 @@ git push origin feature/nom-de-la-branche
 - `EasyLog.dll` séparée avec logs journaliers JSON indentés.
 - `state.json` mis à jour au début, pendant et à la fin d'une sauvegarde.
 - Parser CLI pour index unique, plage, liste et `all`.
-- Tests unitaires pour CLI, chemins portables, sauvegarde complète, sauvegarde différentielle, logs et state.
+- Tests unitaires pour CLI, chemins portables, sauvegarde complète, sauvegarde différentielle, validation d'infrastructure, logs et state.
 - Documentation utilisateur, fiche support et release note.
-- Diagrammes PlantUML alignés sur le code.
+- Diagrammes UML exportés en PNG.
 
 ---
 
@@ -585,10 +588,11 @@ git push origin feature/nom-de-la-branche
 docs/USER_MANUAL.md
 docs/SUPPORT.md
 docs/RELEASE_NOTES_v1.0.md
-docs/UML/UseCaseDiagram.puml
-docs/UML/ClassDiagram.puml
-docs/UML/SequenceExecuteBackup.puml
-docs/UML/ActivityBackupProcess.puml
+docs/CODEBASE_REFERENCE.md
+diagrames UML/Diagramme de cas d’utilisation.png
+diagrames UML/Diagramme de classes.png
+diagrames UML/Diagramme de séquence - Exécution d'une sauvegarde EasySave v1.0.png
+diagrames UML/Diagramme d’activité — exécution exacte d’un travail de sauvegarde.png
 ```
 
 ---
@@ -598,11 +602,12 @@ docs/UML/ActivityBackupProcess.puml
 Branches attendues :
 
 - `main`
-- `develop`
 - `feature/core-backup`
 - `feature/easylog`
 - `feature/state-manager`
-- `feature/docs-uml`
+- `feature/pre-release-fixes`
+- `feature/publish-artifacts`
+- `feature/fix-push`
 - `release/v1.0`
 
 Exemples de commits Conventional Commits :
@@ -639,11 +644,11 @@ git push origin v1.0
 - [x] `state.json` temps réel
 - [x] CLI `1`, `1-3`, `1;3`, `all`
 - [x] Ressources FR/EN
-- [x] Tests unitaires parser, chemins, sauvegardes, logs et state
+- [x] Tests unitaires parser, chemins, sauvegardes, validation d'infrastructure, logs et state
 - [x] Documentation utilisateur
 - [x] Fiche support
 - [x] Release note
-- [x] UML PlantUML
+- [x] UML en PNG
 
 ---
 
