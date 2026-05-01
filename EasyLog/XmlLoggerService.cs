@@ -47,6 +47,7 @@ public sealed class XmlLoggerService : ILoggerService
             new XElement("DestinationFilePath", entry.DestinationFilePath),
             new XElement("FileSize", entry.FileSize),
             new XElement("TransferTimeMs", entry.TransferTimeMs),
+            new XElement("EncryptionTimeMs", entry.EncryptionTimeMs),
             new XElement("Status", entry.Status),
             new XElement("ErrorMessage", entry.ErrorMessage ?? string.Empty));
     }
@@ -74,6 +75,7 @@ public sealed class XmlLoggerService : ILoggerService
                 DestinationFilePath = element.Element("DestinationFilePath")?.Value ?? string.Empty,
                 FileSize = long.TryParse(element.Element("FileSize")?.Value, out var fileSize) ? fileSize : 0,
                 TransferTimeMs = long.TryParse(element.Element("TransferTimeMs")?.Value, out var transferTimeMs) ? transferTimeMs : 0,
+                EncryptionTimeMs = long.TryParse(element.Element("EncryptionTimeMs")?.Value, out var encryptionTimeMs) ? encryptionTimeMs : 0,
                 Status = element.Element("Status")?.Value ?? string.Empty,
                 ErrorMessage = element.Element("ErrorMessage")?.Value
             })

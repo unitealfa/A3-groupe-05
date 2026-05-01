@@ -5,8 +5,6 @@ namespace EasySave.Core.Services;
 
 public sealed class BackupJobService
 {
-    public const int MaxJobs = 5;
-
     private readonly BackupJobRepository repository;
 
     public BackupJobService(BackupJobRepository repository)
@@ -24,11 +22,6 @@ public sealed class BackupJobService
         ValidateJob(job);
 
         var jobs = (await repository.GetAllAsync(cancellationToken)).ToList();
-        if (jobs.Count >= MaxJobs)
-        {
-            throw new InvalidOperationException("The maximum number of backup jobs is five.");
-        }
-
         jobs.Add(job);
         await repository.SaveAllAsync(jobs, cancellationToken);
     }

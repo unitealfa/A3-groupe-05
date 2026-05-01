@@ -1,0 +1,170 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:EasySave.GUI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="820"
+        x:Class="EasySave.GUI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Width="1280"
+        Height="820"
+        MinWidth="1080"
+        MinHeight="720"
+        Title="EasySave 2.0">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="10">
+        <Border Grid.Row="0"
+                Background="#2B63C6"
+                BorderBrush="#173C77"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="18,12"
+                Margin="0,0,0,10">
+            <StackPanel>
+                <TextBlock Text="{Binding Texts[AppTitle]}" FontSize="26" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="{Binding Texts[GuiSubtitle]}" FontSize="13" Foreground="#DCEAFF"/>
+            </StackPanel>
+        </Border>
+
+        <TabControl Grid.Row="1">
+            <TabItem Header="{Binding Texts[JobsTab]}">
+                <Grid Margin="12" RowDefinitions="Auto,*">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button Content="{Binding Texts[RefreshJobs]}" Command="{Binding RefreshJobsCommand}"/>
+                        <Button Content="{Binding Texts[RunJob]}" Command="{Binding RunSelectedJobCommand}"/>
+                        <Button Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}"/>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Jobs}"
+                             SelectedItem="{Binding SelectedJob}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#C1B495" BorderThickness="0,0,0,1" Padding="10">
+                                    <Grid ColumnDefinitions="2*,2*,2*,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding SourceDirectory}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding TargetDirectory}"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Type}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{Binding Texts[CreateJob]}">
+                <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*" ColumnDefinitions="180,*,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[JobName]}"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,0,0,10" Text="{Binding JobName}"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[SourceDirectory]}"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,8,10" Text="{Binding SourceDirectory}"/>
+                    <Button Grid.Row="1" Grid.Column="2" Content="{Binding Texts[Browse]}" Click="SourceBrowse_Click"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[TargetDirectory]}"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,8,10" Text="{Binding TargetDirectory}"/>
+                    <Button Grid.Row="2" Grid.Column="2" Content="{Binding Texts[Browse]}" Click="TargetBrowse_Click"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[BackupType]}"/>
+                    <ComboBox Grid.Row="3"
+                              Grid.Column="1"
+                              Grid.ColumnSpan="2"
+                              Margin="0,0,0,10"
+                              ItemsSource="{Binding BackupTypeOptions}"
+                              SelectedValue="{Binding SelectedBackupType}"
+                              SelectedValueBinding="{Binding Value}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <Button Grid.Row="4" Grid.Column="1" Content="{Binding Texts[CreateJob]}" Command="{Binding AddJobCommand}" HorizontalAlignment="Left"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{Binding Texts[SettingsTab]}">
+                <Grid Margin="18" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*" ColumnDefinitions="220,*">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[LanguageLabel]}"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding LanguageOptions}" SelectedValue="{Binding SelectedLanguage}" SelectedValueBinding="{Binding Value}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[LogFormatLabel]}"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,10" ItemsSource="{Binding LogFormatOptions}" SelectedValue="{Binding SelectedLogFormat}" SelectedValueBinding="{Binding Value}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[EncryptedExtensionsLabel]}"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,10" Text="{Binding EncryptedExtensionsText}"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[BusinessSoftwareLabel]}"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,10" Text="{Binding BusinessSoftwareProcessesText}"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[CryptoSoftPathLabel]}"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,10" Text="{Binding CryptoSoftPath}"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{Binding Texts[CryptoKeyLabel]}"/>
+                    <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,10" Text="{Binding CryptoKey}"/>
+
+                    <Button Grid.Row="6" Grid.Column="1" Content="{Binding Texts[SaveSettings]}" Command="{Binding SaveSettingsCommand}" HorizontalAlignment="Left"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{Binding Texts[StateTab]}">
+                <Grid Margin="12" RowDefinitions="Auto,*">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button Content="{Binding Texts[RefreshState]}" Command="{Binding RefreshStatesCommand}"/>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding States}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#C1B495" BorderThickness="0,0,0,1" Padding="10">
+                                    <Grid ColumnDefinitions="1.5*,*,*,*,2*,2*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" FontWeight="Bold"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding State}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Progression}"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding RemainingFiles}"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding CurrentSourceFilePath}"/>
+                                        <TextBlock Grid.Column="5" Text="{Binding CurrentDestinationFilePath}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2"
+                Background="#D8E6F8"
+                BorderBrush="#4B6DAA"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,8"
+                Margin="0,10,0,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding Texts[StatusLabel]}" FontWeight="Bold"/>
+                <TextBlock Margin="12,0,0,0" Text="{Binding StatusMessage}"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+
+</Window>

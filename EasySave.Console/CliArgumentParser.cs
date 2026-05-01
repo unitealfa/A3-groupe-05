@@ -5,7 +5,7 @@ public sealed class CliArgumentParser
     public CliParseResult Parse(
         string argument,
         int existingJobCount,
-        int maxJobCount = 5,
+        int maxJobCount = int.MaxValue,
         Func<string, string>? localize = null)
     {
         localize ??= GetDefaultText;
