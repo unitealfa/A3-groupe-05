@@ -1,0 +1,53 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="EasySave.GUI.App"
+             xmlns:local="using:EasySave.GUI"
+             RequestedThemeVariant="Default">
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+        <Style Selector="Window">
+            <Setter Property="Background" Value="#ECE9D8" />
+            <Setter Property="FontFamily" Value="Tahoma, Verdana, Segoe UI" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#102552" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="#F7F3E8" />
+            <Setter Property="BorderBrush" Value="#7A6F57" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#102552" />
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#FFF7D5" />
+        </Style>
+        <Style Selector="TextBox, ComboBox">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#7A6F57" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#102552" />
+        </Style>
+        <Style Selector="TabControl">
+            <Setter Property="Background" Value="#ECE9D8" />
+        </Style>
+        <Style Selector="TabItem">
+            <Setter Property="Background" Value="#D9E8FB" />
+            <Setter Property="BorderBrush" Value="#4B6DAA" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="#14305F" />
+        </Style>
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="#FFFDF8" />
+            <Setter Property="BorderBrush" Value="#7A6F57" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </Application.Styles>
+</Application>

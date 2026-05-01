@@ -36,9 +36,18 @@ internal static class BackupStrategyRunner
         };
         await context.StateManager.UpdateAsync(state, cancellationToken);
 
+        var initialDetection = context.BusinessSoftwareDetector.Detect(context.Settings);
+        if (initialDetection.IsDetected)
+        {
+            await StopForBusinessSoftwareAsync(job, context, state, initialDetection.ProcessName, cancellationToken);
+            return;
+        }
+
         var copiedFiles = 0;
         var remainingSize = totalSize;
         var hasError = false;
+        var blockedByBusinessSoftware = false;
+        var blockingProcessName = string.Empty;
 
         foreach (var sourceFile in plannedFiles)
         {
@@ -56,10 +65,26 @@ internal static class BackupStrategyRunner
                 sourceFile.CopyTo(destinationPath, overwrite: true);
                 stopwatch.Stop();
 
+                var encryptionTimeMs = 0L;
+                string status = "Success";
+                string? errorMessage = null;
+
+                if (context.Settings.ShouldEncrypt(destinationPath))
+                {
+                    encryptionTimeMs = await context.FileEncryptionService.EncryptAsync(destinationPath, context.Settings, cancellationToken);
+                    if (encryptionTimeMs < 0)
+                    {
+                        hasError = true;
+                        state.State = "Error";
+                        status = "Error";
+                        errorMessage = $"Encryption failed with code {encryptionTimeMs}.";
+                    }
+                }
+
                 copiedFiles++;
                 remainingSize -= sourceFile.Length;
                 UpdateProgress(state, plannedFiles.Count, copiedFiles, remainingSize);
-                await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, stopwatch.ElapsedMilliseconds, "Success"), cancellationToken);
+                await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, stopwatch.ElapsedMilliseconds, encryptionTimeMs, status, errorMessage), cancellationToken);
                 await context.StateManager.UpdateAsync(state, cancellationToken);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -70,9 +95,23 @@ internal static class BackupStrategyRunner
                 remainingSize -= sourceFile.Length;
                 state.State = "Error";
                 UpdateProgress(state, plannedFiles.Count, copiedFiles, remainingSize);
-                await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, stopwatch.ElapsedMilliseconds, "Error", exception.Message), cancellationToken);
+                await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, stopwatch.ElapsedMilliseconds, -1, "Error", exception.Message), cancellationToken);
                 await context.StateManager.UpdateAsync(state, cancellationToken);
             }
+
+            var detection = context.BusinessSoftwareDetector.Detect(context.Settings);
+            if (detection.IsDetected)
+            {
+                blockedByBusinessSoftware = true;
+                blockingProcessName = detection.ProcessName;
+                break;
+            }
+        }
+
+        if (blockedByBusinessSoftware)
+        {
+            await StopForBusinessSoftwareAsync(job, context, state, blockingProcessName, cancellationToken);
+            return;
         }
 
         state.State = hasError ? "Error" : "Finished";
@@ -103,6 +142,7 @@ internal static class BackupStrategyRunner
         string destinationFilePath,
         long fileSize,
         long transferTimeMs,
+        long encryptionTimeMs,
         string status,
         string? errorMessage = null)
     {
@@ -114,8 +154,36 @@ internal static class BackupStrategyRunner
             DestinationFilePath = destinationFilePath,
             FileSize = fileSize,
             TransferTimeMs = transferTimeMs,
+            EncryptionTimeMs = encryptionTimeMs,
             Status = status,
             ErrorMessage = errorMessage
         };
+    }
+
+    private static async Task StopForBusinessSoftwareAsync(
+        BackupJob job,
+        BackupExecutionContext context,
+        BackupState state,
+        string processName,
+        CancellationToken cancellationToken)
+    {
+        context.IsBlockedByBusinessSoftware = true;
+        state.State = "Blocked";
+        state.CurrentSourceFilePath = string.Empty;
+        state.CurrentDestinationFilePath = string.Empty;
+
+        await context.Logger.LogAsync(
+            new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = job.Name,
+                Status = "Blocked",
+                TransferTimeMs = 0,
+                EncryptionTimeMs = 0,
+                ErrorMessage = $"Business software detected: {processName}"
+            },
+            cancellationToken);
+
+        await context.StateManager.UpdateAsync(state, cancellationToken);
     }
 }

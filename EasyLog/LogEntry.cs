@@ -14,6 +14,8 @@ public sealed class LogEntry
 
     public long TransferTimeMs { get; set; }
 
+    public long EncryptionTimeMs { get; set; }
+
     public string Status { get; set; } = string.Empty;
 
     public string? ErrorMessage { get; set; }

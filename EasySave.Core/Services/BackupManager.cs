@@ -1,3 +1,4 @@
+using EasySave.Core.Configuration;
 using EasyLog;
 using EasySave.Core.Models;
 using EasySave.Core.Strategies;
@@ -8,18 +9,47 @@ public sealed class BackupManager
 {
     private readonly BackupJobService jobService;
     private readonly StateManager stateManager;
-    private readonly ILoggerService logger;
+    private readonly Func<AppSettings, ILoggerService> loggerFactory;
+    private readonly AppSettingsRepository? settingsRepository;
+    private readonly IBusinessSoftwareDetector businessSoftwareDetector;
+    private readonly IFileEncryptionService fileEncryptionService;
 
     public BackupManager(BackupJobService jobService, StateManager stateManager, string logDirectory)
-        : this(jobService, stateManager, new JsonLoggerService(logDirectory))
+        : this(
+            jobService,
+            stateManager,
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository: null,
+            new ProcessBusinessSoftwareDetector(),
+            new CryptoSoftEncryptionService())
     {
     }
 
     public BackupManager(BackupJobService jobService, StateManager stateManager, ILoggerService logger)
+        : this(
+            jobService,
+            stateManager,
+            _ => logger,
+            settingsRepository: null,
+            new ProcessBusinessSoftwareDetector(),
+            new CryptoSoftEncryptionService())
+    {
+    }
+
+    public BackupManager(
+        BackupJobService jobService,
+        StateManager stateManager,
+        Func<AppSettings, ILoggerService> loggerFactory,
+        AppSettingsRepository? settingsRepository,
+        IBusinessSoftwareDetector businessSoftwareDetector,
+        IFileEncryptionService fileEncryptionService)
     {
         this.jobService = jobService;
         this.stateManager = stateManager;
-        this.logger = logger;
+        this.loggerFactory = loggerFactory;
+        this.settingsRepository = settingsRepository;
+        this.businessSoftwareDetector = businessSoftwareDetector;
+        this.fileEncryptionService = fileEncryptionService;
     }
 
     public async Task ExecuteJobAsync(int jobIndex, CancellationToken cancellationToken = default)
@@ -30,7 +60,7 @@ public sealed class BackupManager
             throw new ArgumentOutOfRangeException(nameof(jobIndex), "Backup job index is out of range.");
         }
 
-        await ExecuteJobAsync(jobs[jobIndex - 1], cancellationToken);
+        await ExecuteJobInternalAsync(jobs[jobIndex - 1], cancellationToken);
     }
 
     public async Task ExecuteAllJobsAsync(CancellationToken cancellationToken = default)
@@ -38,7 +68,11 @@ public sealed class BackupManager
         var jobs = await jobService.GetJobsAsync(cancellationToken);
         foreach (var job in jobs)
         {
-            await ExecuteJobAsync(job, cancellationToken);
+            var blocked = await ExecuteJobInternalAsync(job, cancellationToken);
+            if (blocked)
+            {
+                break;
+            }
         }
     }
 
@@ -46,17 +80,36 @@ public sealed class BackupManager
     {
         foreach (var jobIndex in jobIndexes)
         {
-            await ExecuteJobAsync(jobIndex, cancellationToken);
+            var jobs = await jobService.GetJobsAsync(cancellationToken);
+            if (jobIndex < 1 || jobIndex > jobs.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(jobIndex), "Backup job index is out of range.");
+            }
+
+            var blocked = await ExecuteJobInternalAsync(jobs[jobIndex - 1], cancellationToken);
+            if (blocked)
+            {
+                break;
+            }
         }
     }
 
-    private async Task ExecuteJobAsync(BackupJob job, CancellationToken cancellationToken)
+    private async Task<bool> ExecuteJobInternalAsync(BackupJob job, CancellationToken cancellationToken)
     {
         BackupJobService.ValidateJob(job);
 
         var strategy = BackupStrategyFactory.Create(job.Type);
-        var context = new BackupExecutionContext(stateManager, logger);
+        var settings = settingsRepository is null
+            ? new AppSettings()
+            : await settingsRepository.LoadAsync(cancellationToken);
+        var context = new BackupExecutionContext(
+            stateManager,
+            loggerFactory(settings),
+            settings,
+            businessSoftwareDetector,
+            fileEncryptionService);
 
         await strategy.ExecuteAsync(job, context, cancellationToken);
+        return context.IsBlockedByBusinessSoftware;
     }
 }

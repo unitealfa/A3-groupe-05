@@ -74,13 +74,6 @@ public sealed class ConsoleMenu
 
     private async Task CreateJobAsync(CancellationToken cancellationToken)
     {
-        var jobs = await jobService.GetJobsAsync(cancellationToken);
-        if (jobs.Count >= BackupJobService.MaxJobs)
-        {
-            System.Console.WriteLine(languageSelector.Text("MaxJobsReached"));
-            return;
-        }
-
         var job = new BackupJob
         {
             Name = AskRequired("JobName"),
@@ -337,7 +330,6 @@ public sealed class ConsoleMenu
             ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),
-            InvalidOperationException when exception.Message == "The maximum number of backup jobs is five." => languageSelector.Text("MaxJobsReached"),
             InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => languageSelector.Text("TargetDirectoryCreationFailed"),
             _ => exception.Message
         };
