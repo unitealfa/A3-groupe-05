@@ -1,4 +1,5 @@
 using System.Text.Json;
+using EasyLog;
 
 namespace EasySave.Console;
 
@@ -19,9 +20,13 @@ public sealed class LanguageSelector
 
     public string CurrentLanguage { get; private set; } = "en";
 
+    public LogFormat CurrentLogFormat { get; private set; } = LogFormat.Json;
+
     public async Task InitializeAsync()
     {
-        CurrentLanguage = await LoadSavedLanguageAsync();
+        var settings = await LoadSettingsAsync();
+        CurrentLanguage = settings.Language;
+        CurrentLogFormat = settings.LogFormat;
         await LoadTranslationsAsync(CurrentLanguage);
     }
 
@@ -33,8 +38,19 @@ public sealed class LanguageSelector
         var choice = System.Console.ReadLine();
 
         CurrentLanguage = choice == "1" ? "fr" : "en";
-        await SaveLanguageAsync(CurrentLanguage);
+        await SaveSettingsAsync();
         await LoadTranslationsAsync(CurrentLanguage);
+    }
+
+    public async Task SelectLogFormatAsync()
+    {
+        System.Console.WriteLine($"1 - {Text("LogFormatJson")}");
+        System.Console.WriteLine($"2 - {Text("LogFormatXml")}");
+        System.Console.Write($"{Text("LogFormatPrompt")} ");
+        var choice = System.Console.ReadLine();
+
+        CurrentLogFormat = choice == "2" ? LogFormat.Xml : LogFormat.Json;
+        await SaveSettingsAsync();
     }
 
     public string Text(string key)
@@ -56,27 +72,54 @@ public sealed class LanguageSelector
             ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task<string> LoadSavedLanguageAsync()
+    private async Task<AppSettings> LoadSettingsAsync()
     {
         if (!File.Exists(settingsFilePath))
         {
-            return "en";
+            return new AppSettings();
         }
 
         await using var stream = File.OpenRead(settingsFilePath);
-        var settings = await JsonSerializer.DeserializeAsync<LanguageSettings>(stream, JsonOptions);
-        return settings?.Language is "fr" or "en" ? settings.Language : "en";
+        var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions);
+        return new AppSettings
+        {
+            Language = settings?.Language is "fr" or "en" ? settings.Language : "en",
+            LogFormatName = ParseLogFormatName(settings?.LogFormatName)
+        };
     }
 
-    private async Task SaveLanguageAsync(string language)
+    private async Task SaveSettingsAsync()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(settingsFilePath)!);
         await using var stream = File.Create(settingsFilePath);
-        await JsonSerializer.SerializeAsync(stream, new LanguageSettings { Language = language }, JsonOptions);
+        await JsonSerializer.SerializeAsync(
+            stream,
+            new AppSettings
+            {
+                Language = CurrentLanguage,
+                LogFormatName = CurrentLogFormat.ToString().ToLowerInvariant()
+            },
+            JsonOptions);
     }
 
-    private sealed class LanguageSettings
+    private static string ParseLogFormatName(string? value)
+    {
+        return string.Equals(value, "xml", StringComparison.OrdinalIgnoreCase) ? "xml" : "json";
+    }
+
+    private static LogFormat ParseLogFormat(string? value)
+    {
+        return string.Equals(value, "xml", StringComparison.OrdinalIgnoreCase)
+            ? LogFormat.Xml
+            : LogFormat.Json;
+    }
+
+    private sealed class AppSettings
     {
         public string Language { get; set; } = "en";
+
+        public string LogFormatName { get; set; } = "json";
+
+        public LogFormat LogFormat => ParseLogFormat(LogFormatName);
     }
 }
