@@ -3,414 +3,1036 @@
         xmlns:vm="using:EasySave.GUI.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1380" d:DesignHeight="860"
+        mc:Ignorable="d"
+        d:DesignWidth="1460"
+        d:DesignHeight="940"
         x:Class="EasySave.GUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Width="1380"
-        Height="860"
-        MinWidth="1140"
-        MinHeight="760"
+        Width="1460"
+        Height="940"
+        MinWidth="1240"
+        MinHeight="820"
         Title="EasySave 2.0">
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="14">
-        <Border Grid.Row="0"
-                Margin="0,0,0,12"
-                CornerRadius="10"
-                BorderBrush="#1B3F7B"
-                BorderThickness="1"
-                BoxShadow="0 8 20 #244A8833">
-            <Grid RowDefinitions="Auto,Auto">
-                <Border CornerRadius="10,10,0,0"
-                        Padding="20,14,20,12">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#0F4FB5" Offset="0" />
-                            <GradientStop Color="#2E83EA" Offset="0.55" />
-                            <GradientStop Color="#77B8FA" Offset="1" />
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <StackPanel Spacing="2">
-                            <TextBlock Text="{Binding Texts[AppTitle]}" FontSize="28" FontWeight="Bold" Foreground="White"/>
-                            <TextBlock Text="{Binding Texts[GuiSubtitle]}" FontSize="13" Foreground="#EAF4FF"/>
-                        </StackPanel>
-                        <Border Grid.Column="1"
-                                Background="#F6FBFF33"
-                                BorderBrush="#CBE4FF88"
-                                BorderThickness="1"
-                                CornerRadius="7"
-                                Padding="14,8"
-                                VerticalAlignment="Center">
-                            <StackPanel>
-                                <TextBlock Text="Windows XP Professional" FontSize="12" FontWeight="Bold" Foreground="#FFFFFF"/>
-                                <TextBlock Text="EasySave Control Center" FontSize="11" Foreground="#E5F2FF"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Row="1"
-                        Background="#F8FBFF"
-                        Padding="16,12"
-                        CornerRadius="0,0,10,10">
-                    <Grid ColumnDefinitions="*,*,*,*,*">
-                        <Border Classes="card" Margin="0,0,10,0" Padding="14,12">
-                            <StackPanel Spacing="4">
-                                <TextBlock Classes="metric-label" Text="Configured jobs"/>
-                                <TextBlock Classes="metric-value" Text="{Binding TotalJobsCount}"/>
-                                <TextBlock Classes="muted" Text="Unlimited backup definitions"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="1" Classes="card" Margin="0,0,10,0" Padding="14,12">
-                            <StackPanel Spacing="4">
-                                <TextBlock Classes="metric-label" Text="Running states"/>
-                                <TextBlock Classes="metric-value" Text="{Binding ActiveStatesCount}"/>
-                                <TextBlock Classes="muted" Text="Current active executions"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="2" Classes="card" Margin="0,0,10,0" Padding="14,12">
-                            <StackPanel Spacing="4">
-                                <TextBlock Classes="metric-label" Text="Finished states"/>
-                                <TextBlock Classes="metric-value" Text="{Binding FinishedStatesCount}"/>
-                                <TextBlock Classes="muted" Text="Completed successfully"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="3" Classes="card" Margin="0,0,10,0" Padding="14,12">
-                            <StackPanel Spacing="4">
-                                <TextBlock Classes="metric-label" Text="Blocked states"/>
-                                <TextBlock Classes="metric-value" Text="{Binding BlockedStatesCount}"/>
-                                <TextBlock Classes="muted" Text="Business software detected"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="4" Classes="card" Padding="14,12">
-                            <StackPanel Spacing="4">
-                                <TextBlock Classes="metric-label" Text="Error states"/>
-                                <TextBlock Classes="metric-value" Text="{Binding ErrorStatesCount}"/>
-                                <TextBlock Classes="muted" Text="Execution or encryption issues"/>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </Border>
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Border Grid.Row="0" Classes="xp-menubar">
+            <Grid ColumnDefinitions="Auto,* ,Auto" Margin="12,0">
+                <TextBlock Text="{Binding Texts[ShellTitle]}" Classes="window-title" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,0" Spacing="0">
+                    <Button Classes="xp-menu-button primary"
+                            Content="{Binding Texts[MenuFile]}"
+                            Command="{Binding NavigateToSectionCommand}"
+                            CommandParameter="0" />
+                    <Button Classes="xp-menu-button"
+                            Content="{Binding Texts[MenuBackups]}"
+                            Command="{Binding NavigateToSectionCommand}"
+                            CommandParameter="1" />
+                    <Button Classes="xp-menu-button"
+                            Content="{Binding Texts[MenuSettings]}"
+                            Command="{Binding NavigateToSectionCommand}"
+                            CommandParameter="6" />
+                    <Button Classes="xp-menu-button"
+                            Content="{Binding Texts[MenuHelp]}"
+                            Command="{Binding NavigateToSectionCommand}"
+                            CommandParameter="7" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBlock Text="◉" Foreground="White" FontSize="14" />
+                    <TextBlock Text="?" Foreground="White" FontSize="14" FontWeight="Bold" />
+                </StackPanel>
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Classes="panel" Margin="0,0,0,12" Padding="14,12">
-            <Grid ColumnDefinitions="280,*,300" ColumnSpacing="14">
-                <Border Classes="card" Padding="14,12">
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="section-title" Text="Quick actions"/>
-                        <TextBlock Classes="muted" Text="Launch backups and refresh the current desktop state." TextWrapping="Wrap"/>
-                        <Separator Margin="0,6,0,4"/>
-                        <Button Content="{Binding Texts[RefreshJobs]}" Command="{Binding RefreshJobsCommand}" HorizontalAlignment="Stretch"/>
-                        <Button Content="{Binding Texts[RunJob]}" Command="{Binding RunSelectedJobCommand}" HorizontalAlignment="Stretch"/>
-                        <Button Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" HorizontalAlignment="Stretch"/>
-                        <Button Content="{Binding Texts[RefreshState]}" Command="{Binding RefreshStatesCommand}" HorizontalAlignment="Stretch"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="1" Classes="card" Padding="16,14">
-                    <StackPanel Spacing="4">
-                        <TextBlock Classes="section-title" Text="Backup workspace"/>
-                        <TextBlock Classes="muted"
-                                   Text="Create, launch and supervise complete or differential jobs from a single control surface."
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Grid.Column="2" Classes="card" Padding="14,12">
-                    <StackPanel Spacing="6">
-                        <TextBlock Classes="section-title" Text="General profile"/>
-                        <TextBlock Classes="muted" Text="{Binding CryptoSoftPath}" TextWrapping="Wrap"/>
-                        <Separator Margin="0,6,0,4"/>
-                        <TextBlock FontWeight="Bold" Text="Log format"/>
-                        <TextBlock Classes="muted" Text="{Binding SelectedLogFormat}"/>
-                        <TextBlock FontWeight="Bold" Text="Language"/>
-                        <TextBlock Classes="muted" Text="{Binding SelectedLanguage}"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </Border>
-
-        <Border Grid.Row="2" Classes="panel" Padding="10">
-            <TabControl>
-                <TabItem Header="{Binding Texts[JobsTab]}">
-                    <Grid Margin="10" ColumnDefinitions="2.1*,1.1*" ColumnSpacing="14">
-                        <Border Classes="card" Padding="0">
-                            <Grid RowDefinitions="Auto,*">
-                                <Border Background="#EAF2FD"
-                                        BorderBrush="#B2C8E8"
-                                        BorderThickness="0,0,0,1"
-                                        CornerRadius="7,7,0,0"
-                                        Padding="14,10">
-                                    <Grid ColumnDefinitions="2.2*,2.2*,2.2*,0.9*">
-                                        <TextBlock Text="Name" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="1" Text="Source" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="2" Text="Target" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="3" Text="Type" FontWeight="Bold"/>
+        <Border Grid.Row="1" Classes="xp-shell" Margin="0">
+            <TabControl Classes="xp-shell" TabStripPlacement="Left" SelectedIndex="{Binding SelectedSectionIndex}">
+                <TabItem Header="{Binding Texts[DashboardTab]}">
+                    <ScrollViewer Margin="10">
+                        <Border Classes="xp-card" Padding="0" BorderBrush="#716F64" BorderThickness="1">
+                            <Grid RowDefinitions="Auto,*" Background="#F9F9F9">
+                                <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                            <TextBlock Text="{Binding Texts[DashboardWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                            <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                <TextBlock Text="_" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                            </Border>
+                                            <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                <TextBlock Text="□" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="9" />
+                                            </Border>
+                                            <Border Width="20" Height="18" Background="#D9534F" BorderBrush="White" BorderThickness="1">
+                                                <TextBlock Text="X" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="10" />
+                                            </Border>
+                                        </StackPanel>
                                     </Grid>
                                 </Border>
-                                <ListBox Grid.Row="1"
-                                         Background="Transparent"
-                                         BorderThickness="0"
-                                         ItemsSource="{Binding Jobs}"
-                                         SelectedItem="{Binding SelectedJob}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Classes="card" Margin="8,8,8,0" Padding="14,12">
-                                                <Grid ColumnDefinitions="2.2*,2.2*,2.2*,0.9*">
-                                                    <StackPanel Grid.Column="0" Spacing="2">
-                                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                                        <TextBlock Classes="muted" Text="Backup job"/>
-                                                    </StackPanel>
-                                                    <TextBlock Grid.Column="1" Text="{Binding SourceDirectory}" TextWrapping="Wrap"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding TargetDirectory}" TextWrapping="Wrap"/>
-                                                    <Border Grid.Column="3"
-                                                            HorizontalAlignment="Left"
-                                                            Background="#DDEBFF"
-                                                            BorderBrush="#96B2DA"
-                                                            BorderThickness="1"
-                                                            CornerRadius="12"
-                                                            Padding="10,4">
-                                                        <TextBlock Text="{Binding Type}" FontWeight="SemiBold"/>
+
+                                <StackPanel Grid.Row="1" Margin="16" Spacing="16">
+                                    <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="8">
+                                        <Border Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="{Binding Texts[DashboardTotalJobs]}" Classes="metric-caption" />
+                                                <TextBlock Text="{Binding TotalJobsCount}" Classes="metric-value" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="{Binding Texts[DashboardLastBackup]}" Classes="metric-caption" />
+                                                <TextBlock Text="{Binding LatestBackupText}" Classes="metric-value" Foreground="#1D5CB6" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="2" Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="{Binding Texts[DashboardGlobalStatus]}" Classes="metric-caption" />
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <Ellipse Width="12" Height="12" Fill="#1D8F2F" Stroke="#0D5E1A" StrokeThickness="1" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding GlobalStatusLabel}" FontWeight="Bold" FontSize="20" Foreground="#1D8F2F" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="3" Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="{Binding Texts[DashboardLogFormat]}" Classes="metric-caption" />
+                                                <TextBlock Text="{Binding CurrentLogFormatLabel}" Classes="metric-value" Foreground="#1A1C1C" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="4" Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
+                                            <StackPanel Spacing="4">
+                                                <TextBlock Text="{Binding Texts[DashboardBusinessSoftware]}" Classes="metric-caption" />
+                                                <TextBlock Text="{Binding DashboardBusinessSoftwareRuntimeText}" FontWeight="Bold" Foreground="#BA1A1A" Margin="0,8,0,0" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="8*,4*" ColumnSpacing="8" Height="410">
+                                        <Border Classes="xp-panel" Padding="0" BorderBrush="#716F64" BorderThickness="1">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Background="#E2E2E2" BorderBrush="#C3C6D7" BorderThickness="0,0,0,1" Padding="10,6">
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Text="{Binding Texts[DashboardRecentJobs]}" FontWeight="Bold" FontSize="12" Foreground="#424655" />
+                                                        <Button Grid.Column="1"
+                                                                Content="{Binding Texts[RefreshJobs]}"
+                                                                Command="{Binding RefreshJobsCommand}"
+                                                                Padding="6,2"
+                                                                MinHeight="22" />
+                                                    </Grid>
+                                                </Border>
+                                                <Grid Grid.Row="1" RowDefinitions="Auto,*">
+                                                    <Border Background="#E8E8E8" BorderBrush="#737686" BorderThickness="0,0,0,1" Padding="8,6">
+                                                        <Grid ColumnDefinitions="2.3*,1.4*,1.1*,0.9*" ColumnSpacing="0">
+                                                            <TextBlock Text="{Binding Texts[DashboardTableJobName]}" FontWeight="Bold" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Texts[DashboardTableStatus]}" FontWeight="Bold" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding Texts[DashboardTableCompletion]}" FontWeight="Bold" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding Texts[DashboardTableAction]}" FontWeight="Bold" />
+                                                        </Grid>
                                                     </Border>
+                                                    <ListBox Grid.Row="1"
+                                                             Classes="xp-list"
+                                                             Background="White"
+                                                             BorderThickness="0"
+                                                             ItemsSource="{Binding DashboardJobs}">
+                                                        <ListBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border Classes="xp-row" Padding="8,6">
+                                                                    <Grid ColumnDefinitions="2.3*,1.4*,1.1*,0.9*">
+                                                                        <TextBlock Text="{Binding Name}" />
+                                                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#1D8F2F" FontWeight="Bold" />
+                                                                        <TextBlock Grid.Column="2" Text="{Binding Completion}" />
+                                                                        <Button Grid.Column="3"
+                                                                                Content="{Binding $parent[Window].DataContext.Texts[DashboardOpenJob]}"
+                                                                                Command="{Binding $parent[Window].DataContext.OpenDashboardJobCommand}"
+                                                                                CommandParameter="{Binding Job}"
+                                                                                Padding="6,2"
+                                                                                MinHeight="22" />
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ListBox.ItemTemplate>
+                                                    </ListBox>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" Spacing="8">
+                                            <Border Classes="xp-panel" BorderBrush="#716F64" BorderThickness="1" Padding="12">
+                                                <StackPanel Spacing="10">
+                                                    <TextBlock Text="{Binding Texts[DashboardNetworkLoad]}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" />
+                                                    <Border Background="#E8E8E8" BorderBrush="#C3C6D7" BorderThickness="1" Height="112">
+                                                        <StackPanel Margin="12" VerticalAlignment="Center" Spacing="8">
+                                                            <TextBlock Text="{Binding DashboardPrimaryGaugeTitle}" HorizontalAlignment="Center" FontWeight="Bold" />
+                                                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding SelectedJobProgressValue}" />
+                                                            <TextBlock Text="{Binding DashboardPrimaryGaugeValue}"
+                                                                       HorizontalAlignment="Center"
+                                                                       FontSize="18"
+                                                                       FontWeight="Bold"
+                                                                       Foreground="#0043B0" />
+                                                            <TextBlock Text="{Binding DashboardPrimaryGaugeSubtitle}" HorizontalAlignment="Center" Classes="caption" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Classes="xp-panel" BorderBrush="#716F64" BorderThickness="1" Padding="12" Background="#F0F0ED">
+                                                <StackPanel Spacing="10">
+                                                    <TextBlock Text="{Binding Texts[DashboardOperationControl]}" FontWeight="Bold" FontSize="12" />
+                                                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                                        <Button Content="{Binding Texts[CreateJob]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="2" />
+                                                        <Button Grid.Column="1" Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" />
+                                                        <Button Grid.Row="1" Content="{Binding Texts[SettingsTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="6" />
+                                                        <Button Grid.Row="1" Grid.Column="1" Content="{Binding Texts[LogsTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Orientation="Horizontal" Spacing="20">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="◷" Foreground="#424655" />
+                                            <TextBlock Text="{Binding DashboardFooterCenterText}" Classes="caption" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="⌂" Foreground="#424655" />
+                                            <TextBlock Text="{Binding DashboardFooterRightText}" Classes="caption" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Border Classes="xp-alert" BorderBrush="#ACA899" Background="#F0F0ED">
+                                        <Grid ColumnDefinitions="2.4*,1.2*" ColumnSpacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="18">
+                                                <Button Content="{Binding Texts[DashboardFooterSystemLog]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#0043B0" FontWeight="Bold" />
+                                                <Button Content="{Binding Texts[DashboardFooterNetworkStatus]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="5" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
+                                                <Button Content="{Binding Texts[DashboardFooterMedia]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="6" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Texts[DashboardFooterCopyright]}"
+                                                       HorizontalAlignment="Right"
+                                                       Classes="caption" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="{Binding Texts[JobsTab]}">
+                    <ScrollViewer Margin="10">
+                        <StackPanel Spacing="14">
+                            <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,Auto,*,Auto" Background="#ECE9D8">
+                                    <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[JobsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                    <TextBlock Text="_" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                                </Border>
+                                                <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                    <TextBlock Text="□" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="9" />
+                                                </Border>
+                                                <Border Width="20" Height="18" Background="#D9534F" BorderBrush="White" BorderThickness="1">
+                                                    <TextBlock Text="X" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="10" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                                            <Button Content="{Binding Texts[CreateJobToolbar]}" Command="{Binding PrepareCreateJobCommand}" Classes="xp-primary" />
+                                            <Button Grid.Column="1" Content="{Binding Texts[RunAllJobsToolbar]}" Command="{Binding RunAllJobsCommand}" />
+                                            <Border Grid.Column="3" Background="White" BorderBrush="#ACA899" BorderThickness="1" Padding="8,4">
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                                                    <TextBlock Text="⌕" Foreground="#7D7D7D" VerticalAlignment="Center" />
+                                                    <TextBox Grid.Column="1"
+                                                             Background="Transparent"
+                                                             BorderThickness="0"
+                                                             PlaceholderText="{Binding Texts[JobsFilterPlaceholder]}"
+                                                             Text="{Binding JobFilterText}" />
                                                 </Grid>
                                             </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Row="2" Margin="10" Background="White" BorderBrush="#716F64" BorderThickness="1" Padding="0">
+                                        <Grid RowDefinitions="Auto,*">
+                                            <Border Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="10,8">
+                                                <Grid ColumnDefinitions="1.25*,1.8*,1.8*,0.8*,1.15*,0.9*,0.95*" ColumnSpacing="10">
+                                                    <TextBlock Text="{Binding Texts[ColumnName]}" Classes="label" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Texts[ColumnSource]}" Classes="label" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Texts[ColumnTarget]}" Classes="label" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding Texts[ColumnType]}" Classes="label" />
+                                                    <TextBlock Grid.Column="4" Text="{Binding Texts[JobsLastRunColumn]}" Classes="label" />
+                                                    <TextBlock Grid.Column="5" Text="{Binding Texts[ColumnStatus]}" Classes="label" />
+                                                    <TextBlock Grid.Column="6" Text="{Binding Texts[JobsActionsColumn]}" Classes="label" />
+                                                </Grid>
+                                            </Border>
+
+                                            <ListBox Grid.Row="1"
+                                                     Classes="xp-list"
+                                                     Background="White"
+                                                     BorderThickness="0"
+                                                     ItemsSource="{Binding JobListRows}"
+                                                     SelectedValue="{Binding SelectedJob}"
+                                                     SelectedValueBinding="{Binding Job}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Classes="xp-row" Padding="10,8">
+                                                            <Grid ColumnDefinitions="1.25*,1.8*,1.8*,0.8*,1.15*,0.9*,0.95*" ColumnSpacing="10">
+                                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#0043B0" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Source}" TextWrapping="Wrap" />
+                                                                <TextBlock Grid.Column="2" Text="{Binding Destination}" TextWrapping="Wrap" />
+                                                                <Border Grid.Column="3" Classes="xp-badge">
+                                                                    <TextBlock Text="{Binding Type}" HorizontalAlignment="Center" />
+                                                                </Border>
+                                                                <TextBlock Grid.Column="4" Text="{Binding LastRun}" />
+                                                                <TextBlock Grid.Column="5" Text="{Binding Status}" FontWeight="Bold" />
+                                                                <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="6">
+                                                                    <Button Content="{Binding $parent[Window].DataContext.Texts[RunJobNow]}"
+                                                                            Command="{Binding $parent[Window].DataContext.RunDashboardJobCommand}"
+                                                                            CommandParameter="{Binding Job}"
+                                                                            Padding="6,2"
+                                                                            MinHeight="22" />
+                                                                    <Button Content="{Binding $parent[Window].DataContext.Texts[EditJobAction]}"
+                                                                            Command="{Binding $parent[Window].DataContext.EditJobCommand}"
+                                                                            CommandParameter="{Binding Job}"
+                                                                            Padding="6,2"
+                                                                            MinHeight="22" />
+                                                                    <Button Content="{Binding $parent[Window].DataContext.Texts[DashboardOpenJob]}"
+                                                                            Command="{Binding $parent[Window].DataContext.OpenDashboardJobCommand}"
+                                                                            CommandParameter="{Binding Job}"
+                                                                            Padding="6,2"
+                                                                            MinHeight="22" />
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Row="3" Background="#ECE9D8" Padding="10,6" BorderBrush="#ACA899" BorderThickness="0,1,0,0">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock Text="{Binding JobsSelectedCountText}" Classes="caption" />
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                <Ellipse Width="9" Height="9" Fill="#1D8F2F" Stroke="#0D5E1A" StrokeThickness="1" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding JobsServiceStatusText}" Classes="caption" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+                                <Border Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[JobsSummaryTotal]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding TotalJobsCount}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[JobsSummaryFiltered]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding FilteredJobsCount}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[JobsSummaryActive]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding ActiveStatesCount}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="3" Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[JobsSummaryStorage]}" Classes="metric-caption" />
+                                        <ProgressBar Minimum="0" Maximum="100" Value="{Binding JobsStorageUsagePercent}" />
+                                        <TextBlock Text="{Binding JobsStorageUsageText}" Classes="caption" />
+                                    </StackPanel>
+                                </Border>
                             </Grid>
-                        </Border>
-
-                        <StackPanel Grid.Column="1" Spacing="14">
-                            <Border Classes="card" Padding="16,14">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Classes="section-title" Text="Selected job"/>
-                                    <TextBlock Text="{Binding SelectedJob.Name, FallbackValue=No job selected}" FontSize="18" FontWeight="Bold"/>
-                                    <TextBlock Classes="muted" Text="{Binding SelectedJob.SourceDirectory}" TextWrapping="Wrap"/>
-                                    <TextBlock Classes="muted" Text="{Binding SelectedJob.TargetDirectory}" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Classes="card" Padding="16,14">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Classes="section-title" Text="Execution shortcuts"/>
-                                    <TextBlock Classes="muted"
-                                               Text="Use single-job launch for focused operations or run the entire queue in sequence."
-                                               TextWrapping="Wrap"/>
-                                    <Button Content="{Binding Texts[RunJob]}" Command="{Binding RunSelectedJobCommand}" HorizontalAlignment="Stretch"/>
-                                    <Button Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" HorizontalAlignment="Stretch"/>
-                                </StackPanel>
-                            </Border>
                         </StackPanel>
-                    </Grid>
+                    </ScrollViewer>
                 </TabItem>
 
-                <TabItem Header="{Binding Texts[CreateJob]}">
-                    <Grid Margin="14" ColumnDefinitions="2*,1*" ColumnSpacing="14">
-                        <Border Classes="card" Padding="18,16">
-                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*"
-                                  ColumnDefinitions="180,*,Auto"
-                                  ColumnSpacing="12"
-                                  RowSpacing="12">
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Classes="section-title" Text="Create a new backup definition"/>
+                <TabItem Header="{Binding Texts[CreateJobTab]}">
+                    <ScrollViewer Margin="10">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="520" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding JobFormTitle}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Border Width="21" Height="21" Background="#2769E5" BorderBrush="#FFFFFF66" BorderThickness="1">
+                                                    <TextBlock Text="_" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                                </Border>
+                                                <Border Width="21" Height="21" Background="#E81123" BorderBrush="#FFFFFF66" BorderThickness="1">
+                                                    <TextBlock Text="X" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[JobName]}"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding JobName}"/>
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="12">
+                                        <TextBlock Text="{Binding JobFormSubtitle}" Classes="caption" TextWrapping="Wrap" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[SourceDirectory]}"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SourceDirectory}"/>
-                                <Button Grid.Row="2" Grid.Column="2" Content="{Binding Texts[Browse]}" Click="SourceBrowse_Click"/>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[JobName]}" Classes="label" />
+                                            <TextBox Text="{Binding JobName}" />
+                                        </StackPanel>
 
-                                <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[TargetDirectory]}"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TargetDirectory}"/>
-                                <Button Grid.Row="3" Grid.Column="2" Content="{Binding Texts[Browse]}" Click="TargetBrowse_Click"/>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[SourceDirectory]}" Classes="label" />
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBox Text="{Binding SourceDirectory}" />
+                                                <Button Grid.Column="1" Content="{Binding Texts[Browse]}" Click="SourceBrowse_Click" />
+                                            </Grid>
+                                            <TextBlock Text="{Binding Texts[EditJobSourceHint]}" Classes="caption" TextWrapping="Wrap" />
+                                        </StackPanel>
 
-                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[BackupType]}"/>
-                                <ComboBox Grid.Row="4"
-                                          Grid.Column="1"
-                                          Grid.ColumnSpan="2"
-                                          ItemsSource="{Binding BackupTypeOptions}"
-                                          SelectedValue="{Binding SelectedBackupType}"
-                                          SelectedValueBinding="{Binding Value}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Label}"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[TargetDirectory]}" Classes="label" />
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBox Text="{Binding TargetDirectory}" />
+                                                <Button Grid.Column="1" Content="{Binding Texts[Browse]}" Click="TargetBrowse_Click" />
+                                            </Grid>
+                                        </StackPanel>
 
-                                <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,6,0,0">
-                                    <Button Content="{Binding Texts[CreateJob]}" Command="{Binding AddJobCommand}"/>
-                                    <Button Content="{Binding Texts[RefreshJobs]}" Command="{Binding RefreshJobsCommand}"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
+                                        <Border Classes="xp-card" Padding="12">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="{Binding Texts[BackupTypeField]}" Foreground="#003399" FontWeight="Bold" />
+                                                <ComboBox ItemsSource="{Binding BackupTypeOptions}"
+                                                          SelectedValue="{Binding SelectedBackupType}"
+                                                          SelectedValueBinding="{Binding Value}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Label}" />
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Border>
 
-                        <StackPanel Grid.Column="1" Spacing="14">
-                            <Border Classes="card" Padding="16,14">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Classes="section-title" Text="Design guidance"/>
-                                    <TextBlock Classes="muted"
-                                               Text="Use a short job name, select an exact source folder, then point to the destination root that should receive the replicated tree."
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Content="{Binding SaveJobButtonText}" Command="{Binding AddJobCommand}" Classes="xp-primary" />
+                                            <Button Content="{Binding Texts[CancelJobEdition]}" Command="{Binding ResetJobFormCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
                             </Border>
-
-                            <Border Classes="card" Padding="16,14">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Classes="section-title" Text="Backup behavior"/>
-                                    <TextBlock Text="Complete" FontWeight="Bold"/>
-                                    <TextBlock Classes="muted" Text="Copies the full source tree." TextWrapping="Wrap"/>
-                                    <TextBlock Text="Differential" FontWeight="Bold" Margin="0,6,0,0"/>
-                                    <TextBlock Classes="muted" Text="Copies only missing or changed files." TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
+                        </Grid>
+                    </ScrollViewer>
                 </TabItem>
 
-                <TabItem Header="{Binding Texts[SettingsTab]}">
-                    <Grid Margin="14" ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
-                        <Border Classes="card" Padding="18,16">
-                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*"
-                                  ColumnDefinitions="220,*"
-                                  RowSpacing="12"
-                                  ColumnSpacing="12">
-                                <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Classes="section-title" Text="General settings"/>
+                <TabItem Header="{Binding Texts[ExecutionTab]}">
+                    <ScrollViewer Margin="10">
+                        <StackPanel Spacing="14">
+                            <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,*" Background="#F9F9F9">
+                                    <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[ExecutionWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                    <TextBlock Text="_" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                                </Border>
+                                                <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                    <TextBlock Text="□" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="9" />
+                                                </Border>
+                                                <Border Width="20" Height="18" Background="#D9534F" BorderBrush="White" BorderThickness="1">
+                                                    <TextBlock Text="X" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="10" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[LanguageLabel]}"/>
-                                <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding LanguageOptions}" SelectedValue="{Binding SelectedLanguage}" SelectedValueBinding="{Binding Value}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Label}"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="14">
+                                        <Grid ColumnDefinitions="74,*" ColumnSpacing="12">
+                                            <Border Background="#E8E8E8" BorderBrush="#C3C6D7" BorderThickness="1" Width="74" Height="74">
+                                                <TextBlock Text="↻" FontSize="34" Foreground="#0043B0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding SelectedJobName}" FontWeight="Bold" FontSize="18" Foreground="#0043B0" />
+                                                <TextBlock Text="{Binding Texts[ExecutionCurrentFileLabel]}" Classes="label" />
+                                                <TextBlock Text="{Binding SelectedJobCurrentSource}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Grid>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[LogFormatLabel]}"/>
-                                <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding LogFormatOptions}" SelectedValue="{Binding SelectedLogFormat}" SelectedValueBinding="{Binding Value}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Label}"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                        <Border Classes="xp-panel" Background="#F3F3F3" BorderBrush="#C3C6D7" BorderThickness="1" Padding="10">
+                                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                                                <TextBlock Text="{Binding Texts[ColumnSource]}" Classes="label" Foreground="#1D5CB6" />
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedJobSource}" TextWrapping="Wrap" />
+                                                <TextBlock Grid.Row="1" Text="{Binding Texts[ColumnTarget]}" Classes="label" Foreground="#1D5CB6" />
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedJobTarget}" TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
 
-                                <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[EncryptedExtensionsLabel]}"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EncryptedExtensionsText}"/>
+                                        <StackPanel Spacing="4">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="{Binding Texts[ProgressLabel]}" FontWeight="Bold" />
+                                                <TextBlock Grid.Column="1" Text="{Binding SelectedJobProgressText}" FontWeight="Bold" />
+                                            </Grid>
+                                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding SelectedJobProgressValue}" Height="22" />
+                                        </StackPanel>
 
-                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[BusinessSoftwareLabel]}"/>
-                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding BusinessSoftwareProcessesText}"/>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                            <Border Classes="xp-summary">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[ExecutionFilesCard]}" Classes="metric-caption" />
+                                                    <TextBlock Text="{Binding SelectedJobRemainingFilesText}" Classes="metric-value" />
+                                                    <TextBlock Text="{Binding SelectedJobTotalFilesText, StringFormat='{}/ {0}'}" Classes="caption" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="1" Classes="xp-summary">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[ExecutionSizeCard]}" Classes="metric-caption" />
+                                                    <TextBlock Text="{Binding SelectedJobRemainingSizeText}" Classes="metric-value" />
+                                                    <TextBlock Text="{Binding SelectedJobTotalSizeText, StringFormat='{}/ {0}'}" Classes="caption" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
 
-                                <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[CryptoSoftPathLabel]}"/>
-                                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding CryptoSoftPath}"/>
+                                        <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="12">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Texts[StateLabel]}" Classes="metric-caption" HorizontalAlignment="Center" />
+                                                <TextBlock Text="{Binding SelectedJobStateLabel}" Foreground="#0043B0" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                            <Border Width="1" Background="#C3C6D7" />
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="{Binding Texts[LastUpdateLabel]}" Classes="metric-caption" HorizontalAlignment="Center" />
+                                                <TextBlock Text="{Binding SelectedJobLastUpdateText}" Foreground="#0043B0" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
 
-                                <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Texts[CryptoKeyLabel]}"/>
-                                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding CryptoKey}"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Content="{Binding Texts[RunJob]}" Command="{Binding RunSelectedJobCommand}" Classes="xp-primary" />
+                                            <Button Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
 
-                                <Button Grid.Row="7" Grid.Column="1" Content="{Binding Texts[SaveSettings]}" Command="{Binding SaveSettingsCommand}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                            </Grid>
-                        </Border>
-
-                        <StackPanel Grid.Column="1" Spacing="14">
-                            <Border Classes="card" Padding="16,14">
+                            <Border Classes="xp-error" IsVisible="{Binding IsBusinessSoftwareDetected}">
                                 <StackPanel Spacing="6">
-                                    <TextBlock Classes="section-title" Text="Encryption policy"/>
-                                    <TextBlock Classes="muted"
-                                               Text="Only files matching the configured extensions are sent through CryptoSoft. Use semicolons such as .txt;.docx;.zip."
-                                               TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Texts[ExecutionBusinessSoftwareTitle]}" Classes="panel-title" />
+                                    <TextBlock Text="{Binding ExecutionBusinessSoftwareAlertText}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
-                            <Border Classes="card" Padding="16,14">
-                                <StackPanel Spacing="6">
-                                    <TextBlock Classes="section-title" Text="Business software stop rule"/>
-                                    <TextBlock Classes="muted"
-                                               Text="If one of the configured process names is detected, EasySave finishes the current file, logs the interruption and stops the sequence."
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
+
+                            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+                                <Border Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[TotalFilesMetric]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding SelectedJobTotalFilesText}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[RemainingFilesMetric]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding SelectedJobRemainingFilesText}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[TotalSizeMetric]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding SelectedJobTotalSizeText}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="3" Classes="xp-summary">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{Binding Texts[RemainingSizeMetric]}" Classes="metric-caption" />
+                                        <TextBlock Text="{Binding SelectedJobRemainingSizeText}" Classes="metric-value" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="{Binding Texts[LogsTab]}">
+                    <ScrollViewer Margin="10">
+                        <StackPanel Spacing="14">
+                            <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,Auto,*,Auto" Background="#ECE9D8">
+                                    <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[LogsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                    <TextBlock Text="_" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                                </Border>
+                                                <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
+                                                    <TextBlock Text="□" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="9" />
+                                                </Border>
+                                                <Border Width="20" Height="18" Background="#D9534F" BorderBrush="White" BorderThickness="1">
+                                                    <TextBlock Text="X" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="10" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Texts[LogsViewModeLabel]}" Classes="label" VerticalAlignment="Center" />
+                                                <Border Classes="xp-badge">
+                                                    <TextBlock Text="{Binding CurrentLogFormatLabel}" />
+                                                </Border>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Texts[LogsCurrentFileLabel]}" Classes="label" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding LogPreviewPath}" VerticalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <Button Grid.Column="3"
+                                                    Content="{Binding Texts[LogsRefreshButton]}"
+                                                    Command="{Binding RefreshStatesCommand}"
+                                                    Classes="xp-primary"
+                                                    Padding="10,3"
+                                                    MinHeight="24" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid Grid.Row="2" ColumnDefinitions="1.05*,1.75*" ColumnSpacing="12" Margin="12">
+                                        <StackPanel Spacing="12">
+                                            <Border Classes="xp-card">
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[LogsCurrentConfigTitle]}" Classes="panel-title" />
+                                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                                                        <TextBlock Text="{Binding Texts[LogFormatLabel]}" Classes="label" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding CurrentLogFormatLabel}" />
+                                                        <TextBlock Grid.Row="1" Text="{Binding Texts[LogsDirectoryLabel]}" Classes="label" />
+                                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LogDirectoryPath}" TextWrapping="Wrap" />
+                                                        <TextBlock Grid.Row="2" Text="{Binding Texts[LogsCurrentFileLabel]}" Classes="label" />
+                                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LogPreviewPath}" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Classes="xp-alert">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[LogsPreviewInfoTitle]}" Classes="panel-title" />
+                                                    <TextBlock Text="{Binding LogPreviewInfo}" Classes="caption" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Classes="xp-card">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[LogsPageTitle]}" Classes="panel-title" />
+                                                    <TextBlock Text="{Binding Texts[LogsPageSubtitle]}" Classes="caption" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="1" Classes="xp-notepad" Padding="0">
+                                            <Grid RowDefinitions="Auto,Auto,*">
+                                                <Border Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8,6">
+                                                    <TextBlock Text="{Binding Texts[LogsPreviewFileBanner]}" FontWeight="Bold" />
+                                                </Border>
+                                                <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="6,2">
+                                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                                        <TextBlock Text="{Binding Texts[LogsNotepadFile]}" />
+                                                        <TextBlock Text="{Binding Texts[LogsNotepadEdit]}" />
+                                                        <TextBlock Text="{Binding Texts[LogsNotepadSearch]}" />
+                                                        <TextBlock Text="{Binding Texts[LogsNotepadHelp]}" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBox Grid.Row="2"
+                                                         Classes="xp-logbox"
+                                                         Text="{Binding LogPreviewText}"
+                                                         Height="540"
+                                                         AcceptsReturn="True"
+                                                         IsReadOnly="True"
+                                                         TextWrapping="NoWrap" />
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+
+                                    <Border Grid.Row="3" Background="#ECE9D8" Padding="10,6" BorderBrush="#ACA899" BorderThickness="0,1,0,0">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                            <TextBlock Text="{Binding Texts[LogsFooterCount]}" Classes="caption" />
+                                            <TextBlock Grid.Column="1" Text="{Binding LogPreviewInfo}" Classes="caption" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </Border>
                         </StackPanel>
-                    </Grid>
+                    </ScrollViewer>
                 </TabItem>
 
                 <TabItem Header="{Binding Texts[StateTab]}">
-                    <Grid Margin="14" ColumnDefinitions="2.2*,1*" ColumnSpacing="14">
-                        <Border Classes="card" Padding="0">
-                            <Grid RowDefinitions="Auto,*">
-                                <Border Background="#EAF2FD"
-                                        BorderBrush="#B2C8E8"
-                                        BorderThickness="0,0,0,1"
-                                        CornerRadius="7,7,0,0"
-                                        Padding="14,10">
-                                    <Grid ColumnDefinitions="1.6*,0.9*,0.8*,0.8*,2.1*,2.1*">
-                                        <TextBlock Text="Job" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="1" Text="State" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="2" Text="Progress" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="3" Text="Remaining" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="4" Text="Current source" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="5" Text="Current target" FontWeight="Bold"/>
-                                    </Grid>
-                                </Border>
-                                <ListBox Grid.Row="1" Background="Transparent" BorderThickness="0" ItemsSource="{Binding States}">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Classes="card" Margin="8,8,8,0" Padding="14,12">
-                                                <Grid ColumnDefinitions="1.6*,0.9*,0.8*,0.8*,2.1*,2.1*">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
-                                                    <Border Grid.Column="1"
-                                                            HorizontalAlignment="Left"
-                                                            Background="#E6F0FE"
-                                                            BorderBrush="#9FB8DE"
-                                                            BorderThickness="1"
-                                                            CornerRadius="12"
-                                                            Padding="10,4">
-                                                        <TextBlock Text="{Binding State}" FontWeight="SemiBold"/>
-                                                    </Border>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Progression}"/>
-                                                    <TextBlock Grid.Column="3" Text="{Binding RemainingFiles}"/>
-                                                    <TextBlock Grid.Column="4" Text="{Binding CurrentSourceFilePath}" TextWrapping="Wrap"/>
-                                                    <TextBlock Grid.Column="5" Text="{Binding CurrentDestinationFilePath}" TextWrapping="Wrap"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Grid>
-                        </Border>
+                    <ScrollViewer Margin="10">
+                        <StackPanel Spacing="14">
+                            <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,Auto,*,Auto" Background="#ECE9D8">
+                                    <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[StateWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1"
+                                                    Content="{Binding Texts[RefreshState]}"
+                                                    Command="{Binding RefreshStatesCommand}"
+                                                    Classes="xp-primary"
+                                                    Padding="10,3"
+                                                    MinHeight="24" />
+                                        </Grid>
+                                    </Border>
 
-                        <StackPanel Grid.Column="1" Spacing="14">
-                            <Border Classes="card" Padding="16,14">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Classes="section-title" Text="Runtime monitor"/>
-                                    <TextBlock Classes="muted"
-                                               Text="Refresh the state list to inspect progression, remaining files and the active source or destination currently processed."
-                                               TextWrapping="Wrap"/>
-                                    <Button Content="{Binding Texts[RefreshState]}" Command="{Binding RefreshStatesCommand}" HorizontalAlignment="Stretch"/>
-                                </StackPanel>
+                                    <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
+                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
+                                            <Border Classes="xp-badge success">
+                                                <TextBlock Text="{Binding ActiveStatesCount, StringFormat='Actifs: {0}'}" FontWeight="Bold" />
+                                            </Border>
+                                            <Border Grid.Column="1" Classes="xp-badge">
+                                                <TextBlock Text="{Binding FinishedStatesCount, StringFormat='Terminés: {0}'}" FontWeight="Bold" />
+                                            </Border>
+                                            <Border Grid.Column="2" Classes="xp-badge warning">
+                                                <TextBlock Text="{Binding ErrorStatesCount, StringFormat='Erreurs: {0}'}" FontWeight="Bold" />
+                                            </Border>
+                                            <TextBlock Grid.Column="3" Text="{Binding Texts[StatePageSubtitle]}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="2" Margin="12" Spacing="12">
+                                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="10">
+                                            <Border Classes="xp-summary">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[JobsSummaryTotal]}" Classes="metric-caption" />
+                                                    <TextBlock Text="{Binding TotalJobsCount}" Classes="metric-value" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="1" Classes="xp-summary">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[JobsSummaryActive]}" Classes="metric-caption" />
+                                                    <TextBlock Text="{Binding ActiveStatesCount}" Classes="metric-value" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="2" Classes="xp-summary">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[StateBlockedCountLabel]}" Classes="metric-caption" />
+                                                    <TextBlock Text="{Binding BlockedStatesCount}" Classes="metric-value" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="3" Classes="xp-summary">
+                                                <StackPanel Spacing="4">
+                                                    <TextBlock Text="{Binding Texts[StateErrorCountLabel]}" Classes="metric-caption" />
+                                                    <TextBlock Text="{Binding ErrorStatesCount}" Classes="metric-value" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <Border Classes="xp-card" Padding="10">
+                                            <Grid ColumnDefinitions="1.15*,0.8*,0.8*,0.8*,1*,1*,1.5*,1.5*" ColumnSpacing="10">
+                                                <TextBlock Text="{Binding Texts[ColumnName]}" Classes="label" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Texts[StateLabel]}" Classes="label" />
+                                                <TextBlock Grid.Column="2" Text="{Binding Texts[ProgressLabel]}" Classes="label" />
+                                                <TextBlock Grid.Column="3" Text="{Binding Texts[RemainingFilesMetric]}" Classes="label" />
+                                                <TextBlock Grid.Column="4" Text="{Binding Texts[TotalSizeMetric]}" Classes="label" />
+                                                <TextBlock Grid.Column="5" Text="{Binding Texts[RemainingSizeMetric]}" Classes="label" />
+                                                <TextBlock Grid.Column="6" Text="{Binding Texts[CurrentSourceLabel]}" Classes="label" />
+                                                <TextBlock Grid.Column="7" Text="{Binding Texts[CurrentTargetLabel]}" Classes="label" />
+                                            </Grid>
+                                        </Border>
+
+                                        <ListBox Classes="xp-list" ItemsSource="{Binding States}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Classes="xp-row" Padding="10,8">
+                                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="1.15*,0.8*,0.8*,0.8*,1*,1*,1.5*,1.5*" ColumnSpacing="10" RowSpacing="6">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#0043B0" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding State}" FontWeight="Bold" />
+                                                            <StackPanel Grid.Column="2" Spacing="3">
+                                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding Progression}" Height="16" />
+                                                                <TextBlock Text="{Binding Progression, StringFormat='{}{0}%'}" Classes="caption" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="3" Text="{Binding RemainingFiles}" />
+                                                            <TextBlock Grid.Column="4" Text="{Binding TotalFilesSize}" />
+                                                            <TextBlock Grid.Column="5" Text="{Binding RemainingSize}" />
+                                                            <TextBlock Grid.Column="6" Text="{Binding CurrentSourceFilePath}" TextWrapping="Wrap" />
+                                                            <TextBlock Grid.Column="7" Text="{Binding CurrentDestinationFilePath}" TextWrapping="Wrap" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </StackPanel>
+
+                                    <Border Grid.Row="3" Background="#ECE9D8" Padding="10,6" BorderBrush="#ACA899" BorderThickness="0,1,0,0">
+                                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                                            <TextBlock Text="{Binding Texts[StateFilePathLabel]}" Classes="caption" />
+                                            <TextBlock Grid.Column="1" Text="{Binding StateFilePath}" Classes="caption" TextWrapping="Wrap" />
+                                            <TextBlock Grid.Row="1" Text="{Binding Texts[SettingsFilePathLabel]}" Classes="caption" />
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SettingsConfigPath}" Classes="caption" TextWrapping="Wrap" />
+                                        </Grid>
+                                    </Border>
+                                </Grid>
                             </Border>
                         </StackPanel>
-                    </Grid>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="{Binding Texts[SettingsTab]}">
+                    <ScrollViewer Margin="10">
+                        <StackPanel Spacing="16">
+                            <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[SettingsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1"
+                                                    Content="{Binding Texts[SettingsApplyButton]}"
+                                                    Command="{Binding SaveSettingsCommand}"
+                                                    Classes="xp-primary"
+                                                    Padding="10,3"
+                                                    MinHeight="24" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="14">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[SettingsPageTitle]}" Classes="section-title" />
+                                            <TextBlock Text="{Binding Texts[SettingsPageSubtitle]}" Classes="caption" TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                                            <Border Classes="xp-panel">
+                                                <StackPanel Spacing="12">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="◌" Foreground="#0043B0" FontSize="16" />
+                                                        <TextBlock Text="{Binding Texts[SettingsLocalizationTitle]}" Classes="panel-title" />
+                                                    </StackPanel>
+
+                                                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                                                        <TextBlock Text="{Binding Texts[LanguageLabel]}" Classes="label" />
+                                                        <ComboBox Grid.Column="1"
+                                                                  ItemsSource="{Binding LanguageOptions}"
+                                                                  SelectedValue="{Binding SelectedLanguage}"
+                                                                  SelectedValueBinding="{Binding Value}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding Label}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+
+                                                        <TextBlock Grid.Row="1" Text="{Binding Texts[LogFormatLabel]}" Classes="label" />
+                                                        <ComboBox Grid.Row="1"
+                                                                  Grid.Column="1"
+                                                                  ItemsSource="{Binding LogFormatOptions}"
+                                                                  SelectedValue="{Binding SelectedLogFormat}"
+                                                                  SelectedValueBinding="{Binding Value}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="{Binding Label}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+
+                                                        <Border Grid.Row="2" Grid.ColumnSpan="2" Classes="xp-card" Padding="8">
+                                                            <TextBlock Text="{Binding Texts[SettingsLogHint]}" Classes="caption" TextWrapping="Wrap" Foreground="#0043B0" />
+                                                        </Border>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="1" Classes="xp-panel">
+                                                <StackPanel Spacing="12">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="⌂" Foreground="#0043B0" FontSize="16" />
+                                                        <TextBlock Text="{Binding Texts[SettingsPathsTitle]}" Classes="panel-title" />
+                                                    </StackPanel>
+
+                                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                                                        <StackPanel Spacing="4">
+                                                            <TextBlock Text="{Binding Texts[StateFilePathLabel]}" Classes="label" />
+                                                            <TextBox Text="{Binding StateFilePath}" IsReadOnly="True" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Row="1" Spacing="4">
+                                                            <TextBlock Text="{Binding Texts[LogsDirectoryLabel]}" Classes="label" />
+                                                            <TextBox Text="{Binding LogDirectoryPath}" IsReadOnly="True" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Row="2" Spacing="4">
+                                                            <TextBlock Text="{Binding Texts[SettingsFilePathLabel]}" Classes="label" />
+                                                            <TextBox Text="{Binding SettingsConfigPath}" IsReadOnly="True" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <Border Classes="xp-panel">
+                                            <StackPanel Spacing="12">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="⌐" Foreground="#BA1A1A" FontSize="16" />
+                                                        <TextBlock Text="{Binding Texts[SettingsCryptoTitle]}" Classes="panel-title" />
+                                                    </StackPanel>
+                                                    <Border Grid.Column="1" Classes="xp-badge">
+                                                        <TextBlock Text="{Binding Texts[SettingsEncryptionEnabled]}" FontWeight="Bold" Foreground="#003399" />
+                                                    </Border>
+                                                </Grid>
+
+                                                <Grid ColumnDefinitions="1.2*,0.8*" ColumnSpacing="14">
+                                                    <StackPanel Spacing="10">
+                                                        <StackPanel Spacing="4">
+                                                            <TextBlock Text="{Binding Texts[CryptoSoftPathLabel]}" Classes="label" />
+                                                            <TextBox Text="{Binding CryptoSoftPath}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Spacing="4">
+                                                            <TextBlock Text="{Binding Texts[CryptoKeyLabel]}" Classes="label" />
+                                                            <TextBox Text="{Binding CryptoKey}" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="1" Spacing="8">
+                                                        <TextBlock Text="{Binding Texts[EncryptedExtensionsLabelShort]}" Classes="label" />
+                                                        <TextBox Text="{Binding EncryptedExtensionsText}" AcceptsReturn="True" Height="110" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                </Grid>
+
+                                                <Border Classes="xp-card" Padding="8">
+                                                    <TextBlock Text="{Binding Texts[SettingsCryptoBody]}" Classes="caption" TextWrapping="Wrap" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Grid ColumnDefinitions="1.15*,0.85*" ColumnSpacing="14">
+                                            <Border Classes="xp-panel">
+                                                <StackPanel Spacing="10">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="!" Foreground="#0043B0" FontSize="16" />
+                                                        <TextBlock Text="{Binding Texts[SettingsBusinessTitle]}" Classes="panel-title" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Texts[BusinessSoftwareLabel]}" Classes="label" />
+                                                    <TextBox Text="{Binding BusinessSoftwareProcessesText}" AcceptsReturn="True" Height="72" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsBusinessBody]}" Classes="caption" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="1" BorderBrush="White" BorderThickness="2" Background="#0F4CA8" Padding="20">
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[SettingsHelpTitle]}" Foreground="White" FontWeight="Bold" FontSize="20" />
+                                                    <TextBlock Text="{Binding Texts[SettingsHelpBody]}" Foreground="#DCE8FF" TextWrapping="Wrap" />
+                                                    <Border Background="White" BorderBrush="#716F64" BorderThickness="1" Padding="10,6" HorizontalAlignment="Left">
+                                                        <TextBlock Text="{Binding Texts[SettingsHelpFooter]}" Foreground="#0043B0" FontWeight="Bold" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="{Binding Texts[AboutTab]}">
+                    <ScrollViewer Margin="10">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="520" Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text="i" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[AboutWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Border Width="21" Height="21" Background="#2769E5" BorderBrush="#FFFFFF66" BorderThickness="1">
+                                                    <TextBlock Text="_" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                                </Border>
+                                                <Border Width="21" Height="21" Background="#E81123" BorderBrush="#FFFFFF66" BorderThickness="1">
+                                                    <TextBlock Text="X" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" />
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="18" Margin="16">
+                                        <Border Width="74" Height="74" Classes="xp-card" Padding="0">
+                                            <TextBlock Text="⟳" Foreground="#0043B0" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" Spacing="12">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding Texts[AboutProductValue]}" Foreground="#0043B0" FontWeight="Bold" FontSize="20" />
+                                                <TextBlock Text="{Binding Texts[AboutVersionBuildValue]}" Foreground="#1D5CB6" FontWeight="Bold" />
+                                            </StackPanel>
+
+                                            <Border Classes="xp-notepad" Padding="10">
+                                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="8">
+                                                    <TextBlock Text="{Binding Texts[AboutStackLabel]}" Classes="caption" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Texts[AboutStackValue]}" FontWeight="Bold" />
+                                                    <TextBlock Grid.Row="1" Text="{Binding Texts[AboutUiLabel]}" Classes="caption" />
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Texts[AboutUiValue]}" FontWeight="Bold" />
+                                                    <TextBlock Grid.Row="2" Text="{Binding Texts[AboutArchLabel]}" Classes="caption" />
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Texts[AboutArchValue]}" FontWeight="Bold" />
+                                                </Grid>
+                                            </Border>
+
+                                            <StackPanel Spacing="6">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="$" Foreground="#0043B0" FontWeight="Bold" />
+                                                    <TextBlock Text="{Binding Texts[AboutPriceValue]}" FontWeight="Bold" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="*" Foreground="#1D5CB6" FontWeight="Bold" />
+                                                    <TextBlock Text="{Binding Texts[AboutMaintenanceValue]}" Classes="caption" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <TextBlock Text="{Binding Texts[AboutCopyrightNotice]}" Classes="caption" TextWrapping="Wrap" FontStyle="Italic" />
+
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Content="{Binding Texts[AboutOkButton]}" Padding="20,6" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </TabItem>
             </TabControl>
         </Border>
 
-        <Border Grid.Row="3"
-                Margin="0,12,0,0"
-                Padding="14,10"
-                CornerRadius="8"
-                BorderBrush="#7E9BC8"
-                BorderThickness="1"
-                Background="#EEF5FF">
-            <Grid ColumnDefinitions="Auto,*">
-                <TextBlock Grid.Column="0" Text="{Binding Texts[StatusLabel]}" FontWeight="Bold" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="1" Margin="12,0,0,0" Text="{Binding StatusMessage}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        <Border Grid.Row="2" Classes="xp-statusbar" Margin="12,0,12,12">
+            <Grid ColumnDefinitions="1.6*,0.7*,0.7*,1.2*" ColumnSpacing="10">
+                <TextBlock Text="{Binding StatusMessage}" />
+                <TextBlock Grid.Column="1" Text="{Binding CurrentLanguageLabel}" />
+                <TextBlock Grid.Column="2" Text="{Binding CurrentLogFormatLabel}" />
+                <TextBlock Grid.Column="3" Text="{Binding BusinessSoftwareSummary}" TextWrapping="Wrap" />
             </Grid>
         </Border>
     </Grid>
-
 </Window>

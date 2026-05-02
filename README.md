@@ -285,6 +285,39 @@ Cette interface permet :
 - de définir le chemin vers `CryptoSoft` et la clé de chiffrement ;
 - de surveiller l'état des sauvegardes.
 
+La nouvelle interface graphique Avalonia reprend une ergonomie Windows XP desktop avec :
+
+- une barre de titre bleue `EasySave 2.0 / ProSoft Backup Manager` ;
+- une navigation latérale ;
+- un tableau de bord ;
+- une page de gestion des travaux ;
+- une page de création de travail ;
+- une page d'exécution ;
+- une page de consultation des logs ;
+- une page d'état temps réel ;
+- une page paramètres ;
+- une page à propos.
+
+Important :
+
+- les actions `Pause`, `Resume` et `Stop` ne sont pas ajoutées, car elles ne font pas partie d'EasySave 2.0 ;
+- les actions de modification et suppression de travaux sont volontairement laissées indisponibles dans le front tant qu'aucune logique métier dédiée n'existe ;
+- les logs sont prévisualisés dans le GUI sans modification de `EasyLog` ni de `EasySave.Core`.
+
+## Lancer le `.exe` graphique publié
+
+Si le projet a déjà été publié, l'interface graphique principale peut être lancée directement avec :
+
+```powershell
+.\publish\EasySave.exe
+```
+
+Pour republier l'interface graphique après une modification du front :
+
+```powershell
+dotnet publish .\EasySave.GUI\EasySave.GUI.csproj -c Release -o .\publish
+```
+
 ---
 
 # Lancement console
