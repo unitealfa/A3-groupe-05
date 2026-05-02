@@ -26,6 +26,26 @@ public sealed class BackupJobService
         await repository.SaveAllAsync(jobs, cancellationToken);
     }
 
+    public async Task UpdateJobAsync(string originalName, BackupJob job, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(originalName))
+        {
+            throw new ArgumentException("The original backup name is required.", nameof(originalName));
+        }
+
+        ValidateJob(job);
+
+        var jobs = (await repository.GetAllAsync(cancellationToken)).ToList();
+        var index = jobs.FindIndex(existing => string.Equals(existing.Name, originalName, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+        {
+            throw new InvalidOperationException($"Backup job not found: {originalName}");
+        }
+
+        jobs[index] = job;
+        await repository.SaveAllAsync(jobs, cancellationToken);
+    }
+
     public static void ValidateJob(BackupJob job)
     {
         ArgumentNullException.ThrowIfNull(job);

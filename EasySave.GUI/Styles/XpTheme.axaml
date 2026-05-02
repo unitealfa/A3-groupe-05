@@ -1,0 +1,379 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <SolidColorBrush x:Key="XpTitleBlueBrush" Color="#0058E3" />
+        <SolidColorBrush x:Key="XpBorderBlueBrush" Color="#003399" />
+        <SolidColorBrush x:Key="XpSelectionBlueBrush" Color="#7BA2E7" />
+        <SolidColorBrush x:Key="XpBeigeBrush" Color="#ECE9D8" />
+        <SolidColorBrush x:Key="XpButtonGrayBrush" Color="#D4D0C8" />
+        <SolidColorBrush x:Key="XpPanelWhiteBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="XpErrorRedBrush" Color="#BA1A1A" />
+        <SolidColorBrush x:Key="XpSuccessGreenBrush" Color="#1D8F2F" />
+        <SolidColorBrush x:Key="XpWarningOrangeBrush" Color="#D98200" />
+        <SolidColorBrush x:Key="XpFrameGrayBrush" Color="#ACA899" />
+        <SolidColorBrush x:Key="XpShadowGrayBrush" Color="#808080" />
+        <SolidColorBrush x:Key="XpSurfaceBrush" Color="#F4F1E8" />
+    </Styles.Resources>
+
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{DynamicResource XpSurfaceBrush}" />
+        <Setter Property="FontFamily" Value="Tahoma, Segoe UI, Verdana" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="#1B1B1B" />
+    </Style>
+
+    <Style Selector="Border.xp-titlebar">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#0058E3" Offset="0" />
+                <GradientStop Color="#2769E5" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="#003399" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="12,4,12,4" />
+    </Style>
+
+    <Style Selector="Border.xp-menubar">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Background" Value="#0058E3" />
+        <Setter Property="BorderBrush" Value="#003399" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style Selector="Border.xp-shell">
+        <Setter Property="Background" Value="#F3F3F3" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style Selector="Border.xp-panel">
+        <Setter Property="Background" Value="{DynamicResource XpPanelWhiteBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpFrameGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="14" />
+    </Style>
+
+    <Style Selector="Border.xp-card">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#FFFFFF" Offset="0" />
+                <GradientStop Color="#F2EFE6" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="{DynamicResource XpFrameGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style Selector="Border.xp-summary">
+        <Setter Property="Background" Value="#FFFDF7" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpFrameGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10" />
+    </Style>
+
+    <Style Selector="Border.xp-notepad">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpShadowGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8" />
+    </Style>
+
+    <Style Selector="Border.xp-alert">
+        <Setter Property="Background" Value="#FFF4D8" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpWarningOrangeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10" />
+    </Style>
+
+    <Style Selector="Border.xp-error">
+        <Setter Property="Background" Value="#FFE5E3" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpErrorRedBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10" />
+    </Style>
+
+    <Style Selector="Border.xp-success">
+        <Setter Property="Background" Value="#E5F6E8" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpSuccessGreenBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="10" />
+    </Style>
+
+    <Style Selector="Border.xp-statusbar">
+        <Setter Property="Height" Value="25" />
+        <Setter Property="Background" Value="#F0F0ED" />
+        <Setter Property="BorderBrush" Value="#ACA899" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <Style Selector="TextBlock.window-title">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+
+    <Style Selector="TextBlock.window-subtitle">
+        <Setter Property="Foreground" Value="#E5EEFF" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="TextBlock.menu-text">
+        <Setter Property="Foreground" Value="#F2F6FF" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="TextBlock.section-title">
+        <Setter Property="Foreground" Value="{DynamicResource XpBorderBlueBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="16" />
+    </Style>
+
+    <Style Selector="TextBlock.panel-title">
+        <Setter Property="Foreground" Value="{DynamicResource XpBorderBlueBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style Selector="TextBlock.caption">
+        <Setter Property="Foreground" Value="#4A4A4A" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="TextBlock.label">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#202020" />
+    </Style>
+
+    <Style Selector="TextBlock.metric-value">
+        <Setter Property="Foreground" Value="{DynamicResource XpBorderBlueBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="20" />
+    </Style>
+
+    <Style Selector="TextBlock.metric-caption">
+        <Setter Property="Foreground" Value="#4A4A4A" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <Style Selector="Button">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#F6F6F3" Offset="0" />
+                <GradientStop Color="#D4D0C8" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="BorderBrush" Value="{DynamicResource XpShadowGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#1B1B1B" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="MinHeight" Value="30" />
+    </Style>
+
+    <Style Selector="Button:pointerover">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#FFFFFF" Offset="0" />
+                <GradientStop Color="#E9E7E0" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+    </Style>
+
+    <Style Selector="Button:pressed">
+        <Setter Property="Background" Value="#CCC6BA" />
+    </Style>
+
+    <Style Selector="Button.xp-primary">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#7EB3FF" Offset="0" />
+                <GradientStop Color="#0058E3" Offset="0.6" />
+                <GradientStop Color="#0B43A9" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpBorderBlueBrush}" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <Style Selector="Button.xp-danger">
+        <Setter Property="Foreground" Value="{DynamicResource XpErrorRedBrush}" />
+    </Style>
+
+    <Style Selector="Button.xp-nav-button">
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <Style Selector="Button.xp-menu-button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="12,7" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Foreground" Value="#F2F6FF" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="Button.xp-menu-button:pointerover">
+        <Setter Property="Background" Value="#3D82FF" />
+    </Style>
+
+    <Style Selector="Button.xp-menu-button:pressed">
+        <Setter Property="Background" Value="#2769E5" />
+    </Style>
+
+    <Style Selector="Button.xp-menu-button.primary">
+        <Setter Property="Background" Value="#2769E5" />
+    </Style>
+
+    <Style Selector="Button.xp-dashboard-side-button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="Foreground" Value="#003399" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="Button.xp-dashboard-side-button:pointerover">
+        <Setter Property="Background" Value="#9BBBF2" />
+    </Style>
+
+    <Style Selector="Button.xp-dashboard-side-button.selected">
+        <Setter Property="Background" Value="#FFFFFF55" />
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#716F64" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#000000" />
+        <Setter Property="Padding" Value="8,6" />
+    </Style>
+
+    <Style Selector="TextBox:focus">
+        <Setter Property="BorderBrush" Value="{DynamicResource XpTitleBlueBrush}" />
+    </Style>
+
+    <Style Selector="TextBox.xp-logbox">
+        <Setter Property="FontFamily" Value="Consolas, Courier New" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#716F64" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="#000000" />
+        <Setter Property="Padding" Value="6,4" />
+    </Style>
+
+    <Style Selector="ProgressBar">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="Foreground" Value="{DynamicResource XpSuccessGreenBrush}" />
+        <Setter Property="BorderBrush" Value="#7C7C7C" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Height" Value="18" />
+    </Style>
+
+    <Style Selector="TabControl.xp-shell">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style Selector="TabControl.xp-shell /template/ TabStrip">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#7BA2E7" Offset="0" />
+                <GradientStop Color="#6382BF" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
+        <Setter Property="Width" Value="256" />
+    </Style>
+
+    <Style Selector="TabItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="#003399" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+
+    <Style Selector="TabItem:pointerover">
+        <Setter Property="Background" Value="#9BBBF2" />
+        <Setter Property="Foreground" Value="#003399" />
+    </Style>
+
+    <Style Selector="TabItem:selected">
+        <Setter Property="Background" Value="#FFFFFF55" />
+        <Setter Property="Foreground" Value="#003399" />
+    </Style>
+
+    <Style Selector="ListBox.xp-list">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpFrameGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style Selector="Border.xp-row">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#D0CEC4" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="10,8" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected Border.xp-row">
+        <Setter Property="Background" Value="#DCE8FF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpSelectionBlueBrush}" />
+    </Style>
+
+    <Style Selector="Border.xp-badge">
+        <Setter Property="BorderBrush" Value="{DynamicResource XpFrameGrayBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,3" />
+        <Setter Property="Background" Value="#F3F3F3" />
+    </Style>
+
+    <Style Selector="Border.xp-badge.success">
+        <Setter Property="Background" Value="#E5F6E8" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpSuccessGreenBrush}" />
+    </Style>
+
+    <Style Selector="Border.xp-badge.warning">
+        <Setter Property="Background" Value="#FFF1D6" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpWarningOrangeBrush}" />
+    </Style>
+
+    <Style Selector="Border.xp-badge.error">
+        <Setter Property="Background" Value="#FFE5E3" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpErrorRedBrush}" />
+    </Style>
+
+    <Style Selector="Separator">
+        <Setter Property="Background" Value="#C5C2B8" />
+    </Style>
+
+    <Style Selector="ScrollViewer">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+</Styles>
