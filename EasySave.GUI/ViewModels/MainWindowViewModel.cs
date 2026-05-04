@@ -61,13 +61,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private string selectedLogFormat = "json";
 
     [ObservableProperty]
-    private string encryptedExtensionsText = ".txt;.zip";
+    private string encryptedExtensionsText = "*";
 
     [ObservableProperty]
     private string businessSoftwareProcessesText = "calc";
 
     [ObservableProperty]
-    private string cryptoSoftPath = Path.Combine(Directory.GetCurrentDirectory(), "CryptoSoft");
+    private string cryptoSoftPath = Path.Combine(AppPaths.BaseDirectory, "CryptoSoft");
 
     [ObservableProperty]
     private string cryptoKey = "EasySave";
@@ -490,7 +490,7 @@ public partial class MainWindowViewModel : ViewModelBase
         EncryptedExtensionsText = string.Join(";", settings.EncryptedExtensions);
         BusinessSoftwareProcessesText = string.Join(";", settings.BusinessSoftwareProcesses);
         CryptoSoftPath = string.IsNullOrWhiteSpace(settings.CryptoSoftPath)
-            ? Path.Combine(Directory.GetCurrentDirectory(), "CryptoSoft")
+            ? Path.Combine(AppPaths.BaseDirectory, "CryptoSoft")
             : settings.CryptoSoftPath;
         CryptoKey = settings.CryptoKey;
         await LoadTranslationsAsync(SelectedLanguage);
