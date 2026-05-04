@@ -2,13 +2,11 @@ namespace EasySave.Core.Configuration;
 
 public static class AppPaths
 {
-    private const string OverrideEnvironmentVariable = "EASYSAVE_APPDATA";
-
-    public static string BaseDirectory => Path.Combine(GetLocalApplicationData(), "ProSoft", "EasySave");
+    public static string BaseDirectory => Path.GetFullPath(AppContext.BaseDirectory);
 
     public static string ConfigDirectory => Path.Combine(BaseDirectory, "config");
 
-    public static string LogsDirectory => Path.Combine(Directory.GetCurrentDirectory(), "logs");
+    public static string LogsDirectory => Path.Combine(BaseDirectory, "logs");
 
     public static string StateDirectory => Path.Combine(BaseDirectory, "state");
 
@@ -23,16 +21,5 @@ public static class AppPaths
         Directory.CreateDirectory(ConfigDirectory);
         Directory.CreateDirectory(LogsDirectory);
         Directory.CreateDirectory(StateDirectory);
-    }
-
-    private static string GetLocalApplicationData()
-    {
-        var overridePath = Environment.GetEnvironmentVariable(OverrideEnvironmentVariable);
-        if (!string.IsNullOrWhiteSpace(overridePath))
-        {
-            return overridePath;
-        }
-
-        return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
     }
 }

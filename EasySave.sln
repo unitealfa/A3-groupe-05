@@ -22,6 +22,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasySave.Tests", "EasySave.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasySave.GUI", "EasySave.GUI\EasySave.GUI.csproj", "{DB708E08-48BE-43EF-B568-1100730C791E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CryptoSoft", "CryptoSoft\CryptoSoft.csproj", "{C6ED202B-E9B0-4FA7-AE29-FD293DAEE2CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,5 +53,9 @@ Global
 		{DB708E08-48BE-43EF-B568-1100730C791E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB708E08-48BE-43EF-B568-1100730C791E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB708E08-48BE-43EF-B568-1100730C791E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C6ED202B-E9B0-4FA7-AE29-FD293DAEE2CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C6ED202B-E9B0-4FA7-AE29-FD293DAEE2CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C6ED202B-E9B0-4FA7-AE29-FD293DAEE2CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C6ED202B-E9B0-4FA7-AE29-FD293DAEE2CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

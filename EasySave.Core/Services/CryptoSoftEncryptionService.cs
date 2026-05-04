@@ -39,17 +39,22 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
         var error = await errorTask;
         var parsed = TryParseElapsedTime(output) ?? TryParseElapsedTime(error);
 
-        return parsed ?? process.ExitCode;
+        if (parsed.HasValue)
+        {
+            return parsed.Value;
+        }
+
+        return process.ExitCode == 0 ? -12 : -Math.Abs(process.ExitCode);
     }
 
     private static ProcessStartInfo CreateStartInfo(string targetPath, string filePath, string key)
     {
         if (Directory.Exists(targetPath))
         {
-            var projectPath = Path.Combine(targetPath, "CryptoSoft.csproj");
-            if (File.Exists(projectPath))
+            var runnablePath = TryResolveRunnablePath(targetPath);
+            if (!string.IsNullOrWhiteSpace(runnablePath))
             {
-                return CreateDotnetProjectStartInfo(projectPath, filePath, key);
+                return CreateStartInfoFromResolvedPath(runnablePath, filePath, key);
             }
 
             return new ProcessStartInfo
@@ -63,6 +68,11 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
             };
         }
 
+        return CreateStartInfoFromResolvedPath(targetPath, filePath, key);
+    }
+
+    private static ProcessStartInfo CreateStartInfoFromResolvedPath(string targetPath, string filePath, string key)
+    {
         if (targetPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
         {
             return CreateDotnetProjectStartInfo(targetPath, filePath, key);
@@ -70,7 +80,7 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
 
         if (targetPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
         {
-            return new ProcessStartInfo
+            var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
                 ArgumentList = { targetPath, filePath, key },
@@ -79,6 +89,9 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+
+            ApplyDotnetEnvironment(startInfo);
+            return startInfo;
         }
 
         return new ProcessStartInfo
@@ -94,7 +107,7 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
 
     private static ProcessStartInfo CreateDotnetProjectStartInfo(string projectPath, string filePath, string key)
     {
-        return new ProcessStartInfo
+        var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
             ArgumentList = { "run", "--project", projectPath, "--", filePath, key },
@@ -103,6 +116,9 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        ApplyDotnetEnvironment(startInfo);
+        return startInfo;
     }
 
     private static string ResolveTargetPath(string configuredPath)
@@ -131,13 +147,18 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
                 var candidate = Path.Combine(current.FullName, relativePath);
                 if (File.Exists(candidate) || Directory.Exists(candidate))
                 {
-                    return candidate;
+                    var runnablePath = Directory.Exists(candidate)
+                        ? TryResolveRunnablePath(candidate)
+                        : candidate;
+                    return string.IsNullOrWhiteSpace(runnablePath) ? candidate : runnablePath;
                 }
 
                 var projectCandidate = Path.Combine(current.FullName, relativePath, "CryptoSoft.csproj");
                 if (File.Exists(projectCandidate))
                 {
-                    return Path.Combine(current.FullName, relativePath);
+                    var basePath = Path.Combine(current.FullName, relativePath);
+                    var runnablePath = TryResolveRunnablePath(basePath);
+                    return string.IsNullOrWhiteSpace(runnablePath) ? basePath : runnablePath;
                 }
 
                 current = current.Parent;
@@ -151,6 +172,29 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
     {
         yield return Directory.GetCurrentDirectory();
         yield return AppContext.BaseDirectory;
+    }
+
+    private static string TryResolveRunnablePath(string directoryPath)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(directoryPath, "CryptoSoft.exe"),
+            Path.Combine(directoryPath, "CryptoSoft.dll"),
+            Path.Combine(directoryPath, "bin", "Debug", "net8.0", "CryptoSoft.exe"),
+            Path.Combine(directoryPath, "bin", "Debug", "net8.0", "CryptoSoft.dll"),
+            Path.Combine(directoryPath, "bin", "Release", "net8.0", "CryptoSoft.exe"),
+            Path.Combine(directoryPath, "bin", "Release", "net8.0", "CryptoSoft.dll"),
+            Path.Combine(directoryPath, "CryptoSoft.csproj")
+        };
+
+        return candidates.FirstOrDefault(File.Exists) ?? string.Empty;
+    }
+
+    private static void ApplyDotnetEnvironment(ProcessStartInfo startInfo)
+    {
+        startInfo.Environment["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
+        startInfo.Environment["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
+        startInfo.Environment["DOTNET_NOLOGO"] = "1";
     }
 
     private static long? TryParseElapsedTime(string output)

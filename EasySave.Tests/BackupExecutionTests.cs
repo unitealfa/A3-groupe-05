@@ -150,6 +150,42 @@ public sealed class BackupExecutionTests : IDisposable
     }
 
     [Fact]
+    public async Task BackupEncryptsAllFilesByDefaultWhenNoExtensionFilterIsConfigured()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-encrypt-default");
+        var targetDirectory = Path.Combine(testRoot, "target-encrypt-default");
+        var logDirectory = Path.Combine(testRoot, "logs-encrypt-default");
+        var statePath = Path.Combine(testRoot, "state-encrypt-default", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-encrypt-default", "settings.json");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "secret.txt"), "txt-content");
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "plain.log"), "log-content");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings());
+
+        var encryptionService = new FakeEncryptionService(_ => 21);
+
+        var manager = CreateConfiguredBackupManager(
+            logDirectory,
+            statePath,
+            sourceDirectory,
+            targetDirectory,
+            BackupType.Complete,
+            "Encrypt Default Job",
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            encryptionService);
+
+        await manager.ExecuteJobAsync(1);
+
+        Assert.Equal(2, encryptionService.EncryptedFiles.Count);
+        Assert.Contains(encryptionService.EncryptedFiles, path => path.EndsWith("secret.txt", StringComparison.Ordinal));
+        Assert.Contains(encryptionService.EncryptedFiles, path => path.EndsWith("plain.log", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task BackupStopsWhenBusinessSoftwareIsDetected()
     {
         var sourceDirectory = Path.Combine(testRoot, "source-blocked");
@@ -261,20 +297,22 @@ public sealed class BackupExecutionTests : IDisposable
         BackupType backupType,
         string jobName)
     {
-        var repository = new BackupJobRepository(Path.Combine(testRoot, $"{jobName}-config", "jobs.json"));
-        var jobService = new BackupJobService(repository);
-        var stateManager = new StateManager(statePath);
-        var logger = new JsonLoggerService(logDirectory);
-
-        jobService.AddJobAsync(new BackupJob
+        var settingsRepository = new AppSettingsRepository(Path.Combine(testRoot, $"{jobName}-config", "settings.json"));
+        settingsRepository.SaveAsync(new AppSettings
         {
-            Name = jobName,
-            SourceDirectory = sourceDirectory,
-            TargetDirectory = targetDirectory,
-            Type = backupType
+            EncryptedExtensions = [".crypt-only"]
         }).GetAwaiter().GetResult();
 
-        return new BackupManager(jobService, stateManager, logger);
+        return CreateConfiguredBackupManager(
+            logDirectory,
+            statePath,
+            sourceDirectory,
+            targetDirectory,
+            backupType,
+            jobName,
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0));
     }
 
     private BackupManager CreateConfiguredBackupManager(

