@@ -76,18 +76,19 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
         var output = await outputTask;
         var error = await errorTask;
         var parsed = TryParseElapsedTime(output) ?? TryParseElapsedTime(error);
+        var normalizedExitCode = NormalizeProcessExitCode(process.ExitCode);
 
         if (parsed.HasValue)
         {
             return parsed.Value;
         }
 
-        if (process.ExitCode == CryptoSoftBusyExitCode)
+        if (normalizedExitCode == CryptoSoftBusyExitCode)
         {
             return CryptoSoftBusyExitCode;
         }
 
-        return process.ExitCode == 0 ? -12 : -Math.Abs(process.ExitCode);
+        return normalizedExitCode == 0 ? -12 : -Math.Abs(normalizedExitCode);
     }
 
     private static ProcessStartInfo CreateStartInfo(string targetPath, string filePath, string key)
@@ -254,5 +255,15 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
         }
 
         return long.TryParse(match.Groups["value"].Value, out var parsed) ? parsed : null;
+    }
+
+    private static int NormalizeProcessExitCode(int exitCode)
+    {
+        if (OperatingSystem.IsWindows() || exitCode <= 127)
+        {
+            return exitCode;
+        }
+
+        return exitCode - 256;
     }
 }
