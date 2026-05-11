@@ -32,6 +32,25 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
+    public void ValidateJobAcceptsExistingSingleSourceFile()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "single-file-source");
+        var sourceFile = Path.Combine(sourceDirectory, "image.png");
+        Directory.CreateDirectory(sourceDirectory);
+        File.WriteAllText(sourceFile, "image");
+
+        var job = new BackupJob
+        {
+            Name = "Job File",
+            SourceDirectory = sourceFile,
+            TargetDirectory = Path.Combine(testRoot, "target-file"),
+            Type = BackupType.Complete
+        };
+
+        BackupJobService.ValidateJob(job);
+    }
+
+    [Fact]
     public async Task AddJobAsyncAllowsMoreThanFiveJobs()
     {
         var repository = new BackupJobRepository(Path.Combine(testRoot, "config", "jobs.json"));

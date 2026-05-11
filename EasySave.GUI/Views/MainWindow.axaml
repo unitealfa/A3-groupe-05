@@ -35,11 +35,11 @@
                     <Button Classes="xp-menu-button"
                             Content="{Binding Texts[MenuSettings]}"
                             Command="{Binding NavigateToSectionCommand}"
-                            CommandParameter="6" />
+                            CommandParameter="5" />
                     <Button Classes="xp-menu-button"
                             Content="{Binding Texts[MenuHelp]}"
                             Command="{Binding NavigateToSectionCommand}"
-                            CommandParameter="7" />
+                            CommandParameter="5" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <TextBlock Text="◉" Foreground="White" FontSize="14" />
@@ -183,10 +183,10 @@
                                                 <StackPanel Spacing="10">
                                                     <TextBlock Text="{Binding Texts[DashboardOperationControl]}" FontWeight="Bold" FontSize="12" />
                                                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                                                        <Button Content="{Binding Texts[CreateJob]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="2" />
-                                                        <Button Grid.Column="1" Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" />
-                                                        <Button Grid.Row="1" Content="{Binding Texts[SettingsTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="6" />
-                                                        <Button Grid.Row="1" Grid.Column="1" Content="{Binding Texts[LogsTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" />
+                                                        <Button Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" />
+                                                        <Button Grid.Column="1" Content="{Binding Texts[JobsTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="1" />
+                                                        <Button Grid.Row="1" Content="{Binding Texts[SettingsTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="5" />
+                                                        <Button Grid.Row="1" Grid.Column="1" Content="{Binding Texts[StateTab]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" />
                                                     </Grid>
                                                 </StackPanel>
                                             </Border>
@@ -207,9 +207,9 @@
                                     <Border Classes="xp-alert" BorderBrush="#ACA899" Background="#F0F0ED">
                                         <Grid ColumnDefinitions="2.4*,1.2*" ColumnSpacing="8">
                                             <StackPanel Orientation="Horizontal" Spacing="18">
-                                                <Button Content="{Binding Texts[DashboardFooterSystemLog]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#0043B0" FontWeight="Bold" />
-                                                <Button Content="{Binding Texts[DashboardFooterNetworkStatus]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="5" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
-                                                <Button Content="{Binding Texts[DashboardFooterMedia]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="6" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
+                                                <TextBlock Text="{Binding Texts[DashboardFooterSystemLog]}" Foreground="#444444" FontWeight="Bold" />
+                                                <Button Content="{Binding Texts[DashboardFooterNetworkStatus]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
+                                                <Button Content="{Binding Texts[DashboardFooterMedia]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="5" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
                                             </StackPanel>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding Texts[DashboardFooterCopyright]}"
@@ -224,12 +224,13 @@
                 </TabItem>
 
                 <TabItem Header="{Binding Texts[JobsTab]}">
+                    <Grid>
                     <ScrollViewer Margin="10">
                         <StackPanel Spacing="14">
                             <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
                                 <Grid RowDefinitions="Auto,Auto,*,Auto" Background="#ECE9D8">
                                     <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
-                                        <Grid ColumnDefinitions="*,Auto">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
                                                 <TextBlock Text="{Binding Texts[JobsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
@@ -249,10 +250,9 @@
                                     </Border>
 
                                     <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
-                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
-                                            <Button Content="{Binding Texts[CreateJobToolbar]}" Command="{Binding PrepareCreateJobCommand}" Classes="xp-primary" />
-                                            <Button Grid.Column="1" Content="{Binding Texts[RunAllJobsToolbar]}" Command="{Binding RunAllJobsCommand}" />
-                                            <Border Grid.Column="3" Background="White" BorderBrush="#ACA899" BorderThickness="1" Padding="8,4">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                            <Button Content="{Binding Texts[RunAllJobsToolbar]}" Command="{Binding RunAllJobsCommand}" />
+                                            <Border Grid.Column="2" Background="White" BorderBrush="#ACA899" BorderThickness="1" Padding="8,4">
                                                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
                                                     <TextBlock Text="⌕" Foreground="#7D7D7D" VerticalAlignment="Center" />
                                                     <TextBox Grid.Column="1"
@@ -362,14 +362,27 @@
                                     </StackPanel>
                                 </Border>
                             </Grid>
+
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Text="{Binding Texts[JobsPageSubtitle]}"
+                                           Classes="caption"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <Button Grid.Column="1"
+                                        Content="{Binding Texts[JobsNewJobButton]}"
+                                        Command="{Binding PrepareCreateJobCommand}"
+                                        Classes="xp-primary"
+                                        HorizontalAlignment="Right"
+                                        MinWidth="150"
+                                        MinHeight="38"
+                                        Padding="18,8" />
+                            </Grid>
                         </StackPanel>
                     </ScrollViewer>
-                </TabItem>
-
-                <TabItem Header="{Binding Texts[CreateJobTab]}">
-                    <ScrollViewer Margin="10">
-                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border Width="520" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
+                    <Border Background="#66000000"
+                            IsVisible="{Binding IsJobFormOverlayVisible}">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                            <Border Width="560" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
                                 <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
                                     <Border Background="#0058E3" Padding="6,5">
                                         <Grid ColumnDefinitions="*,Auto">
@@ -378,12 +391,27 @@
                                                 <TextBlock Text="{Binding JobFormTitle}" Foreground="White" FontWeight="Bold" FontSize="13" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                                                <Border Width="21" Height="21" Background="#2769E5" BorderBrush="#FFFFFF66" BorderThickness="1">
+                                                <Button Width="21"
+                                                        Height="21"
+                                                        Background="#2769E5"
+                                                        BorderBrush="#FFFFFF66"
+                                                        BorderThickness="1"
+                                                        IsEnabled="False">
                                                     <TextBlock Text="_" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
-                                                </Border>
-                                                <Border Width="21" Height="21" Background="#E81123" BorderBrush="#FFFFFF66" BorderThickness="1">
-                                                    <TextBlock Text="X" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold" />
-                                                </Border>
+                                                </Button>
+                                                <Button Width="24"
+                                                        Height="24"
+                                                        Content="×"
+                                                        Foreground="White"
+                                                        FontSize="14"
+                                                        FontWeight="Bold"
+                                                        Padding="0"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="#E81123"
+                                                        BorderBrush="#FFFFFF66"
+                                                        BorderThickness="1"
+                                                        Command="{Binding CloseJobFormOverlayCommand}" />
                                             </StackPanel>
                                         </Grid>
                                     </Border>
@@ -430,7 +458,91 @@
 
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                                             <Button Content="{Binding SaveJobButtonText}" Command="{Binding AddJobCommand}" Classes="xp-primary" />
-                                            <Button Content="{Binding Texts[CancelJobEdition]}" Command="{Binding ResetJobFormCommand}" />
+                                            <Button Content="{Binding Texts[CancelJobEdition]}" Command="{Binding CloseJobFormOverlayCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="{Binding Texts[CreateJobTab]}" IsVisible="False">
+                    <ScrollViewer Margin="10">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="520" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding JobFormTitle}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                <Button Width="21" Height="21" Background="#2769E5" BorderBrush="#FFFFFF66" BorderThickness="1" IsEnabled="False">
+                                                    <TextBlock Text="_" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" />
+                                                </Button>
+                                                <Button Width="24"
+                                                        Height="24"
+                                                        Content="×"
+                                                        Foreground="White"
+                                                        FontSize="14"
+                                                        FontWeight="Bold"
+                                                        Padding="0"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        Background="#E81123"
+                                                        BorderBrush="#FFFFFF66"
+                                                        BorderThickness="1"
+                                                        Command="{Binding CloseJobFormOverlayCommand}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="12">
+                                        <TextBlock Text="{Binding JobFormSubtitle}" Classes="caption" TextWrapping="Wrap" />
+
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[JobName]}" Classes="label" />
+                                            <TextBox Text="{Binding JobName}" />
+                                        </StackPanel>
+
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[SourceDirectory]}" Classes="label" />
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBox Text="{Binding SourceDirectory}" />
+                                                <Button Grid.Column="1" Content="{Binding Texts[Browse]}" Click="SourceBrowse_Click" />
+                                            </Grid>
+                                            <TextBlock Text="{Binding Texts[EditJobSourceHint]}" Classes="caption" TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[TargetDirectory]}" Classes="label" />
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBox Text="{Binding TargetDirectory}" />
+                                                <Button Grid.Column="1" Content="{Binding Texts[Browse]}" Click="TargetBrowse_Click" />
+                                            </Grid>
+                                        </StackPanel>
+
+                                        <Border Classes="xp-card" Padding="12">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="{Binding Texts[BackupTypeField]}" Foreground="#003399" FontWeight="Bold" />
+                                                <ComboBox ItemsSource="{Binding BackupTypeOptions}"
+                                                          SelectedValue="{Binding SelectedBackupType}"
+                                                          SelectedValueBinding="{Binding Value}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Label}" />
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Content="{Binding SaveJobButtonText}" Command="{Binding AddJobCommand}" Classes="xp-primary" />
+                                            <Button Content="{Binding Texts[CancelJobEdition]}" Command="{Binding CloseJobFormOverlayCommand}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Grid>
@@ -522,10 +634,28 @@
                                             </StackPanel>
                                         </Grid>
 
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                                            <Button Content="{Binding Texts[RunJob]}" Command="{Binding RunSelectedJobCommand}" Classes="xp-primary" />
-                                            <Button Content="{Binding Texts[RunAllJobs]}" Command="{Binding RunAllJobsCommand}" />
-                                        </StackPanel>
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                            <Border Classes="xp-panel" Padding="10">
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[ExecutionSelectedControlsTitle]}" Classes="panel-title" />
+                                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                                        <Button Content="{Binding Texts[PlayJob]}" Command="{Binding RunSelectedJobCommand}" Classes="xp-primary" />
+                                                        <Button Grid.Column="1" Content="{Binding Texts[PauseJob]}" Command="{Binding PauseSelectedJobCommand}" />
+                                                        <Button Grid.Column="2" Content="{Binding Texts[StopJob]}" Command="{Binding StopSelectedJobCommand}" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="1" Classes="xp-panel" Padding="10">
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[ExecutionAllControlsTitle]}" Classes="panel-title" />
+                                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                                        <Button Content="{Binding Texts[PlayAllJobs]}" Command="{Binding RunAllJobsCommand}" Classes="xp-primary" />
+                                                        <Button Grid.Column="1" Content="{Binding Texts[PauseAllJobs]}" Command="{Binding PauseAllJobsCommand}" />
+                                                        <Button Grid.Column="2" Content="{Binding Texts[StopAllJobs]}" Command="{Binding StopAllJobsCommand}" />
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
                                     </StackPanel>
                                 </Grid>
                             </Border>
@@ -567,7 +697,7 @@
                     </ScrollViewer>
                 </TabItem>
 
-                <TabItem Header="{Binding Texts[LogsTab]}">
+                <TabItem Header="{Binding Texts[LogsTab]}" IsVisible="False">
                     <ScrollViewer Margin="10">
                         <StackPanel Spacing="14">
                             <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
@@ -797,7 +927,8 @@
 
                 <TabItem Header="{Binding Texts[SettingsTab]}">
                     <ScrollViewer Margin="10">
-                        <StackPanel Spacing="16">
+                        <Grid>
+                        <StackPanel Spacing="16" IsVisible="{Binding !IsSettingsGuideVisible}">
                             <Border Classes="xp-card" Padding="0" BorderBrush="#003399" BorderThickness="1">
                                 <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
                                     <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="0,0,0,1" Padding="6,5">
@@ -916,7 +1047,9 @@
 
                                                     <StackPanel Grid.Column="1" Spacing="8">
                                                         <TextBlock Text="{Binding Texts[EncryptedExtensionsLabelShort]}" Classes="label" />
-                                                        <TextBox Text="{Binding EncryptedExtensionsText}" AcceptsReturn="True" Height="110" TextWrapping="Wrap" />
+                                                        <TextBox Text="{Binding EncryptedExtensionsText}" AcceptsReturn="True" Height="52" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding Texts[PriorityExtensionsLabelShort]}" Classes="label" />
+                                                        <TextBox Text="{Binding PriorityExtensionsText}" AcceptsReturn="True" Height="52" TextWrapping="Wrap" />
                                                     </StackPanel>
                                                 </Grid>
 
@@ -935,6 +1068,8 @@
                                                     </StackPanel>
                                                     <TextBlock Text="{Binding Texts[BusinessSoftwareLabel]}" Classes="label" />
                                                     <TextBox Text="{Binding BusinessSoftwareProcessesText}" AcceptsReturn="True" Height="72" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[LargeFileThresholdKoLabel]}" Classes="label" />
+                                                    <TextBox Text="{Binding LargeFileThresholdKoText}" />
                                                     <TextBlock Text="{Binding Texts[SettingsBusinessBody]}" Classes="caption" TextWrapping="Wrap" />
                                                 </StackPanel>
                                             </Border>
@@ -943,16 +1078,112 @@
                                                 <StackPanel Spacing="8">
                                                     <TextBlock Text="{Binding Texts[SettingsHelpTitle]}" Foreground="White" FontWeight="Bold" FontSize="20" />
                                                     <TextBlock Text="{Binding Texts[SettingsHelpBody]}" Foreground="#DCE8FF" TextWrapping="Wrap" />
-                                                    <Border Background="White" BorderBrush="#716F64" BorderThickness="1" Padding="10,6" HorizontalAlignment="Left">
-                                                        <TextBlock Text="{Binding Texts[SettingsHelpFooter]}" Foreground="#0043B0" FontWeight="Bold" />
-                                                    </Border>
+                                                    <Button Content="{Binding Texts[SettingsHelpFooter]}"
+                                                            Command="{Binding ToggleSettingsGuideCommand}"
+                                                            Padding="12,6"
+                                                            HorizontalAlignment="Left" />
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
+
                                     </StackPanel>
                                 </Grid>
                             </Border>
                         </StackPanel>
+
+                        <StackPanel Spacing="16" IsVisible="{Binding IsSettingsGuideVisible}">
+                            <Border Classes="xp-card" Padding="0" BorderBrush="#BA1A1A" BorderThickness="2">
+                                <Grid RowDefinitions="Auto,*" Background="#FFF8F7">
+                                    <Border Background="#FFE5E3" BorderBrush="#BA1A1A" BorderThickness="0,0,0,1" Padding="10,8">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock Text="{Binding Texts[SettingsGuideWindowTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                            <Button Grid.Column="1"
+                                                    Content="{Binding Texts[BackButtonText]}"
+                                                    Command="{Binding CloseSettingsGuideCommand}"
+                                                    Padding="12,4" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1" Margin="14" Spacing="12">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Texts[SettingsGuideTitle]}" Classes="section-title" />
+                                            <TextBlock Text="{Binding Texts[SettingsGuideSubtitle]}" Classes="caption" TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <Border Classes="xp-helpbox" Padding="0">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Classes="xp-helpheader">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideApplyTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                                </Border>
+                                                <TextBlock Grid.Row="1" Margin="12" Text="{Binding Texts[SettingsGuideApplyBody]}" TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Classes="xp-helpbox" Padding="0">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Classes="xp-helpheader">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideLocalizationTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                                </Border>
+                                                <StackPanel Grid.Row="1" Margin="12" Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideLanguageBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideLogFormatBody]}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Classes="xp-helpbox" Padding="0">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Classes="xp-helpheader">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuidePathsTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                                </Border>
+                                                <StackPanel Grid.Row="1" Margin="12" Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideStatePathBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideLogsPathBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideSettingsPathBody]}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Classes="xp-helpbox" Padding="0">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Classes="xp-helpheader">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideCryptoTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                                </Border>
+                                                <StackPanel Grid.Row="1" Margin="12" Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideCryptoPathBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideCryptoKeyBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideExtensionsBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuidePriorityExtensionsBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideLargeFileThresholdBody]}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Classes="xp-helpbox" Padding="0">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Classes="xp-helpheader">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideBusinessTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                                </Border>
+                                                <TextBlock Grid.Row="1" Margin="12" Text="{Binding Texts[SettingsGuideBusinessBody]}" TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Classes="xp-helpbox" Padding="0">
+                                            <Grid RowDefinitions="Auto,*">
+                                                <Border Classes="xp-helpheader">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideBehaviorTitle]}" FontWeight="Bold" Foreground="#BA1A1A" />
+                                                </Border>
+                                                <StackPanel Grid.Row="1" Margin="12" Spacing="8">
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideBehaviorBody]}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Texts[SettingsGuideReminderBody]}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                        </Grid>
                     </ScrollViewer>
                 </TabItem>
 

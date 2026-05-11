@@ -99,6 +99,20 @@
         <Setter Property="Padding" Value="10" />
     </Style>
 
+    <Style Selector="Border.xp-helpbox">
+        <Setter Property="Background" Value="#FFF8F7" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpErrorRedBrush}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style Selector="Border.xp-helpheader">
+        <Setter Property="Background" Value="#FFE5E3" />
+        <Setter Property="BorderBrush" Value="{DynamicResource XpErrorRedBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="8,6" />
+    </Style>
+
     <Style Selector="Border.xp-success">
         <Setter Property="Background" Value="#E5F6E8" />
         <Setter Property="BorderBrush" Value="{DynamicResource XpSuccessGreenBrush}" />
