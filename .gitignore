@@ -9,3 +9,12 @@ TestResults/
 *.nupkg
 livrable2
 logs/
+node_modules/
+config/
+state/
+tmp-crypto-check/
+a-save/
+stokage-pour-test/
+publish/config/
+publish/state/
+publish/*.zip

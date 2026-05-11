@@ -1,0 +1,88 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:EasySave.GUI.Views"
+        x:Class="EasySave.GUI.Views.SourceSelectionWindow"
+        Width="820"
+        Height="560"
+        MinWidth="720"
+        MinHeight="460"
+        Title="Select source"
+        WindowStartupLocation="CenterOwner">
+    <Border Background="#ECE9D8" Padding="12">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+            <Border Background="#0058E3" BorderBrush="#003399" BorderThickness="1" Padding="8,6">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                        <TextBlock Text="Source Selection" Foreground="White" FontWeight="Bold" FontSize="13" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="Choose files or one folder"
+                               Foreground="White"
+                               VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button x:Name="UpButton"
+                        Content="Up"
+                        Click="UpButton_Click"
+                        MinWidth="70" />
+                <Button Grid.Column="1"
+                        Content="Use current folder"
+                        Click="UseCurrentFolderButton_Click"
+                        MinWidth="130" />
+                <TextBox Grid.Column="2"
+                         x:Name="CurrentPathTextBox"
+                         IsReadOnly="True" />
+            </Grid>
+
+            <Border Grid.Row="2" BorderBrush="#ACA899" BorderThickness="1" Background="White">
+                <Grid RowDefinitions="Auto,*">
+                    <Border Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8,6">
+                        <Grid ColumnDefinitions="90,*,110">
+                            <TextBlock Text="Type" FontWeight="Bold" />
+                            <TextBlock Grid.Column="1" Text="Name" FontWeight="Bold" />
+                            <TextBlock Grid.Column="2" Text="Location" FontWeight="Bold" />
+                        </Grid>
+                    </Border>
+                    <ListBox Grid.Row="1"
+                             x:Name="EntriesListBox"
+                             SelectionMode="Multiple"
+                             SelectionChanged="EntriesListBox_SelectionChanged"
+                             DoubleTapped="EntriesListBox_DoubleTapped">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="local:SourceSelectionEntry">
+                                <Grid ColumnDefinitions="90,*,110" Margin="4,2">
+                                    <TextBlock Text="{Binding EntryTypeLabel}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="2" Text="{Binding ParentLabel}" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                <TextBlock x:Name="SelectionHintTextBlock"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+                <Button Grid.Column="1"
+                        x:Name="OpenButton"
+                        Content="Open folder"
+                        Click="OpenButton_Click"
+                        MinWidth="96" />
+                <Button Grid.Column="2"
+                        x:Name="OkButton"
+                        Content="OK"
+                        Click="OkButton_Click"
+                        MinWidth="80" />
+                <Button Grid.Column="3"
+                        Content="Cancel"
+                        Click="CancelButton_Click"
+                        MinWidth="80" />
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

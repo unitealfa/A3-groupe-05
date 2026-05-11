@@ -8,9 +8,13 @@ public sealed class AppSettings
 
     public string LogFormatName { get; set; } = "json";
 
-    public List<string> EncryptedExtensions { get; set; } = [];
+    public List<string> EncryptedExtensions { get; set; } = ["*"];
+
+    public List<string> PriorityExtensions { get; set; } = [];
 
     public List<string> BusinessSoftwareProcesses { get; set; } = [];
+
+    public int LargeFileThresholdKo { get; set; }
 
     public string CryptoSoftPath { get; set; } = string.Empty;
 
@@ -22,22 +26,75 @@ public sealed class AppSettings
 
     public bool ShouldEncrypt(string filePath)
     {
+        var normalizedExtensions = GetNormalizedEncryptedExtensions();
+        if (normalizedExtensions.Count == 0 ||
+            normalizedExtensions.Contains("*", StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var extension = Path.GetExtension(filePath);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return true;
+        }
+
+        return normalizedExtensions
+            .Contains(extension, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public IReadOnlyList<string> GetNormalizedEncryptedExtensions()
+    {
+        return NormalizeExtensions(EncryptedExtensions);
+    }
+
+    public bool IsPriorityFile(string filePath)
+    {
+        var normalizedExtensions = GetNormalizedPriorityExtensions();
+        if (normalizedExtensions.Count == 0)
+        {
+            return false;
+        }
+
+        if (normalizedExtensions.Contains("*", StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         var extension = Path.GetExtension(filePath);
         if (string.IsNullOrWhiteSpace(extension))
         {
             return false;
         }
 
-        return GetNormalizedEncryptedExtensions()
-            .Contains(extension, StringComparer.OrdinalIgnoreCase);
+        return normalizedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
     }
 
-    public IReadOnlyList<string> GetNormalizedEncryptedExtensions()
+    public IReadOnlyList<string> GetNormalizedPriorityExtensions()
     {
-        return EncryptedExtensions
+        return NormalizeExtensions(PriorityExtensions);
+    }
+
+    public long GetLargeFileThresholdBytes()
+    {
+        return LargeFileThresholdKo <= 0
+            ? 0
+            : LargeFileThresholdKo * 1024L;
+    }
+
+    public bool IsLargeFile(long fileSizeBytes)
+    {
+        var thresholdBytes = GetLargeFileThresholdBytes();
+        return thresholdBytes > 0 && fileSizeBytes > thresholdBytes;
+    }
+
+    private static IReadOnlyList<string> NormalizeExtensions(IEnumerable<string> values)
+    {
+        return values
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
-            .Select(value => value.StartsWith('.') ? value : $".{value}")
+            .Select(value => value is "*" or "*.*" or ".*" ? "*" : value)
+            .Select(value => value == "*" || value.StartsWith('.') ? value : $".{value}")
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }

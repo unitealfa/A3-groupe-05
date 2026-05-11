@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../EasySave.Core/EasySave.Core.csproj" />
+    <ProjectReference Include="../CryptoSoft/CryptoSoft.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,4 +32,24 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.1" />
   </ItemGroup>
+
+  <Target Name="CopyCryptoSoftToOutput" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)CryptoSoft" />
+    <ItemGroup>
+      <CryptoSoftOutput Include="..\CryptoSoft\bin\$(Configuration)\net8.0\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CryptoSoftOutput)"
+          DestinationFiles="@(CryptoSoftOutput->'$(OutDir)CryptoSoft\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyCryptoSoftToPublish" AfterTargets="Publish">
+    <MakeDir Directories="$(PublishDir)CryptoSoft" />
+    <ItemGroup>
+      <CryptoSoftPublish Include="..\CryptoSoft\bin\$(Configuration)\net8.0\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CryptoSoftPublish)"
+          DestinationFiles="@(CryptoSoftPublish->'$(PublishDir)CryptoSoft\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>

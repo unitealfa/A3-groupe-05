@@ -66,6 +66,13 @@ public sealed class AppSettingsRepository
         settings.Language = settings.Language is "fr" or "en" ? settings.Language : "en";
         settings.LogFormatName = string.Equals(settings.LogFormatName, "xml", StringComparison.OrdinalIgnoreCase) ? "xml" : "json";
         settings.EncryptedExtensions = settings.GetNormalizedEncryptedExtensions().ToList();
+        settings.PriorityExtensions = settings.GetNormalizedPriorityExtensions().ToList();
+        settings.LargeFileThresholdKo = Math.Max(0, settings.LargeFileThresholdKo);
+        if (settings.EncryptedExtensions.Count == 0)
+        {
+            settings.EncryptedExtensions = ["*"];
+        }
+
         settings.BusinessSoftwareProcesses = settings.GetNormalizedBusinessSoftwareProcesses().ToList();
         settings.CryptoKey = string.IsNullOrWhiteSpace(settings.CryptoKey) ? "EasySave" : settings.CryptoKey.Trim();
         settings.CryptoSoftPath = settings.CryptoSoftPath?.Trim() ?? string.Empty;

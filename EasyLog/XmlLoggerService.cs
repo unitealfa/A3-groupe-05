@@ -1,11 +1,12 @@
 using System.Globalization;
+using System.Collections.Concurrent;
 using System.Xml.Linq;
 
 namespace EasyLog;
 
 public sealed class XmlLoggerService : ILoggerService
 {
-    private readonly SemaphoreSlim writeLock = new(1, 1);
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> WriteLocks = new(StringComparer.OrdinalIgnoreCase);
     private readonly string logDirectory;
 
     public XmlLoggerService(string? logDirectory = null)
@@ -18,10 +19,12 @@ public sealed class XmlLoggerService : ILoggerService
     {
         ArgumentNullException.ThrowIfNull(entry);
 
+        var logFilePath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.xml");
+        var writeLock = WriteLocks.GetOrAdd(logFilePath, _ => new SemaphoreSlim(1, 1));
+
         await writeLock.WaitAsync(cancellationToken);
         try
         {
-            var logFilePath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.xml");
             var entries = await ReadEntriesAsync(logFilePath, cancellationToken);
             entries.Add(entry);
 

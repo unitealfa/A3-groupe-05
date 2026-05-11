@@ -26,6 +26,26 @@ public sealed class BackupJobService
         await repository.SaveAllAsync(jobs, cancellationToken);
     }
 
+    public async Task UpdateJobAsync(string originalName, BackupJob job, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(originalName))
+        {
+            throw new ArgumentException("The original backup name is required.", nameof(originalName));
+        }
+
+        ValidateJob(job);
+
+        var jobs = (await repository.GetAllAsync(cancellationToken)).ToList();
+        var index = jobs.FindIndex(existing => string.Equals(existing.Name, originalName, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+        {
+            throw new InvalidOperationException($"Backup job not found: {originalName}");
+        }
+
+        jobs[index] = job;
+        await repository.SaveAllAsync(jobs, cancellationToken);
+    }
+
     public static void ValidateJob(BackupJob job)
     {
         ArgumentNullException.ThrowIfNull(job);
@@ -40,9 +60,16 @@ public sealed class BackupJobService
             throw new ArgumentException("The source directory is required.", nameof(job));
         }
 
-        if (!Directory.Exists(job.SourceDirectory))
+        var sourcePaths = SourceSelectionParser.Parse(job.SourceDirectory);
+        if (sourcePaths.Count == 0)
         {
-            throw new DirectoryNotFoundException($"Source directory does not exist: {job.SourceDirectory}");
+            throw new ArgumentException("The source directory is required.", nameof(job));
+        }
+
+        var missingSourcePath = sourcePaths.FirstOrDefault(path => !SourceSelectionParser.IsExistingSource(path));
+        if (!string.IsNullOrWhiteSpace(missingSourcePath))
+        {
+            throw new DirectoryNotFoundException($"Source path does not exist: {missingSourcePath}");
         }
 
         if (string.IsNullOrWhiteSpace(job.TargetDirectory))
