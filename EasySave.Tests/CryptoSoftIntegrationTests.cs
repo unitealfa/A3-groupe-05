@@ -6,6 +6,7 @@ namespace EasySave.Tests;
 
 public sealed class CryptoSoftIntegrationTests : IDisposable
 {
+    private const int BusyExitCode = -20;
     private readonly string testRoot;
 
     public CryptoSoftIntegrationTests()
@@ -69,7 +70,7 @@ public sealed class CryptoSoftIntegrationTests : IDisposable
             var secondOutput = await secondOutputTask;
 
             Assert.True(firstProcess.ExitCode >= 0, $"Expected first CryptoSoft run to succeed but got {firstProcess.ExitCode}. Output: {firstOutput}");
-            Assert.Equal(-20, secondProcess.ExitCode);
+            Assert.Equal(BusyExitCode, NormalizeProcessExitCode(secondProcess.ExitCode));
             Assert.Contains("already running", secondOutput, StringComparison.OrdinalIgnoreCase);
         }
         finally
@@ -150,5 +151,15 @@ public sealed class CryptoSoftIntegrationTests : IDisposable
             UseShellExecute = false,
             CreateNoWindow = true
         };
+    }
+
+    private static int NormalizeProcessExitCode(int exitCode)
+    {
+        if (OperatingSystem.IsWindows() || exitCode <= 127)
+        {
+            return exitCode;
+        }
+
+        return exitCode - 256;
     }
 }
