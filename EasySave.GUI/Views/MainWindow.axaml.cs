@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -27,7 +26,7 @@ public partial class MainWindow : Window
 
     private async void SourceBrowse_Click(object? sender, RoutedEventArgs e)
     {
-        await PickFolderAsync(path => ViewModel?.SetSourceDirectory(path));
+        await PickSourceAsync();
     }
 
     private async void TargetBrowse_Click(object? sender, RoutedEventArgs e)
@@ -54,6 +53,16 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(localPath))
         {
             onPicked(localPath);
+        }
+    }
+
+    private async Task PickSourceAsync()
+    {
+        var picker = new SourceSelectionWindow(ViewModel?.SourceDirectory);
+        var selectedSource = await picker.ShowDialog<string?>(this);
+        if (!string.IsNullOrWhiteSpace(selectedSource))
+        {
+            ViewModel?.SetSourceDirectory(selectedSource);
         }
     }
 }

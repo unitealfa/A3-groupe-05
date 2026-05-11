@@ -6,7 +6,11 @@ namespace EasySave.Core.Services;
 
 public sealed class CryptoSoftEncryptionService : IFileEncryptionService
 {
+    private const int CryptoSoftBusyExitCode = -20;
+    private static readonly TimeSpan BusyRetryDelay = TimeSpan.FromMilliseconds(150);
+    private static readonly TimeSpan BusyRetryTimeout = TimeSpan.FromSeconds(30);
     private static readonly Regex ElapsedTimeRegex = new(@"ElapsedTimeMs=(?<value>-?\d+)", RegexOptions.Compiled);
+    private static readonly SemaphoreSlim SingleInstanceExecutionLock = new(1, 1);
 
     public async Task<long> EncryptAsync(string filePath, AppSettings settings, CancellationToken cancellationToken = default)
     {
@@ -19,7 +23,41 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
             return -10;
         }
 
-        var startInfo = CreateStartInfo(targetPath, filePath, settings.CryptoKey);
+        await SingleInstanceExecutionLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await EncryptWithRetryAsync(targetPath, filePath, settings.CryptoKey, cancellationToken);
+        }
+        finally
+        {
+            SingleInstanceExecutionLock.Release();
+        }
+    }
+
+    private static async Task<long> EncryptWithRetryAsync(string targetPath, string filePath, string key, CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow.Add(BusyRetryTimeout);
+
+        while (true)
+        {
+            var result = await ExecuteCryptoSoftAsync(targetPath, filePath, key, cancellationToken);
+            if (result != CryptoSoftBusyExitCode)
+            {
+                return result;
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                return CryptoSoftBusyExitCode;
+            }
+
+            await Task.Delay(BusyRetryDelay, cancellationToken);
+        }
+    }
+
+    private static async Task<long> ExecuteCryptoSoftAsync(string targetPath, string filePath, string key, CancellationToken cancellationToken)
+    {
+        var startInfo = CreateStartInfo(targetPath, filePath, key);
         using var process = new Process { StartInfo = startInfo };
 
         try
@@ -42,6 +80,11 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
         if (parsed.HasValue)
         {
             return parsed.Value;
+        }
+
+        if (process.ExitCode == CryptoSoftBusyExitCode)
+        {
+            return CryptoSoftBusyExitCode;
         }
 
         return process.ExitCode == 0 ? -12 : -Math.Abs(process.ExitCode);

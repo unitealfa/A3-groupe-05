@@ -23,6 +23,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly BackupManager backupManager;
     private readonly StateManager stateManager;
     private readonly IBusinessSoftwareDetector businessSoftwareDetector;
+    private readonly CancellationTokenSource runtimeRefreshCancellationTokenSource = new();
+    private bool isRefreshingStates;
 
     [ObservableProperty]
     private Dictionary<string, string> texts = new(StringComparer.OrdinalIgnoreCase);
@@ -64,7 +66,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private string encryptedExtensionsText = "*";
 
     [ObservableProperty]
+    private string priorityExtensionsText = string.Empty;
+
+    [ObservableProperty]
     private string businessSoftwareProcessesText = "calc";
+
+    [ObservableProperty]
+    private string largeFileThresholdKoText = "0";
 
     [ObservableProperty]
     private string cryptoSoftPath = Path.Combine(AppPaths.BaseDirectory, "CryptoSoft");
@@ -99,6 +107,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string editingOriginalJobName = string.Empty;
 
+    [ObservableProperty]
+    private bool isSettingsGuideVisible;
+
+    [ObservableProperty]
+    private bool isJobFormOverlayVisible;
+
     public MainWindowViewModel()
     {
         AppPaths.EnsureDirectories();
@@ -114,7 +128,8 @@ public partial class MainWindowViewModel : ViewModelBase
             CreateLogger,
             settingsRepository,
             businessSoftwareDetector,
-            new CryptoSoftEncryptionService());
+            new CryptoSoftEncryptionService(),
+            new FileSystemFileTransferService());
 
         LanguageOptions =
         [
@@ -140,12 +155,19 @@ public partial class MainWindowViewModel : ViewModelBase
         SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync);
         RunSelectedJobCommand = new AsyncRelayCommand(RunSelectedJobAsync);
         RunAllJobsCommand = new AsyncRelayCommand(RunAllJobsAsync);
+        PauseSelectedJobCommand = new AsyncRelayCommand(PauseSelectedJobAsync);
+        PauseAllJobsCommand = new AsyncRelayCommand(PauseAllJobsAsync);
+        StopSelectedJobCommand = new AsyncRelayCommand(StopSelectedJobAsync);
+        StopAllJobsCommand = new AsyncRelayCommand(StopAllJobsAsync);
         ResetJobFormCommand = new RelayCommand(ResetJobForm);
         NavigateToSectionCommand = new RelayCommand<int>(NavigateToSection);
         OpenDashboardJobCommand = new RelayCommand<BackupJob?>(OpenDashboardJob);
         RunDashboardJobCommand = new AsyncRelayCommand<BackupJob?>(RunDashboardJobAsync);
         PrepareCreateJobCommand = new RelayCommand(PrepareCreateJob);
         EditJobCommand = new RelayCommand<BackupJob?>(EditJob);
+        ToggleSettingsGuideCommand = new RelayCommand(ToggleSettingsGuide);
+        CloseSettingsGuideCommand = new RelayCommand(CloseSettingsGuide);
+        CloseJobFormOverlayCommand = new RelayCommand(CloseJobFormOverlay);
     }
 
     public IReadOnlyList<SelectionOption> LanguageOptions { get; }
@@ -166,6 +188,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IAsyncRelayCommand RunAllJobsCommand { get; }
 
+    public IAsyncRelayCommand PauseSelectedJobCommand { get; }
+
+    public IAsyncRelayCommand PauseAllJobsCommand { get; }
+
+    public IAsyncRelayCommand StopSelectedJobCommand { get; }
+
+    public IAsyncRelayCommand StopAllJobsCommand { get; }
+
     public IRelayCommand ResetJobFormCommand { get; }
 
     public IRelayCommand<int> NavigateToSectionCommand { get; }
@@ -178,11 +208,21 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IRelayCommand<BackupJob?> EditJobCommand { get; }
 
+    public IRelayCommand ToggleSettingsGuideCommand { get; }
+
+    public IRelayCommand CloseSettingsGuideCommand { get; }
+
+    public IRelayCommand CloseJobFormOverlayCommand { get; }
+
     public int TotalJobsCount => Jobs.Count;
 
     public int ActiveStatesCount => States.Count(state => string.Equals(state.State, "Active", StringComparison.OrdinalIgnoreCase));
 
     public int FinishedStatesCount => States.Count(state => string.Equals(state.State, "Finished", StringComparison.OrdinalIgnoreCase));
+
+    public int PausedStatesCount => States.Count(state => string.Equals(state.State, "Paused", StringComparison.OrdinalIgnoreCase));
+
+    public int StoppedStatesCount => States.Count(state => string.Equals(state.State, "Stopped", StringComparison.OrdinalIgnoreCase));
 
     public int BlockedStatesCount => States.Count(state => string.Equals(state.State, "Blocked", StringComparison.OrdinalIgnoreCase));
 
@@ -204,6 +244,14 @@ public partial class MainWindowViewModel : ViewModelBase
         ? Translate("NoExtensionsConfigured")
         : EncryptedExtensionsText;
 
+    public string PriorityExtensionsSummary => string.IsNullOrWhiteSpace(PriorityExtensionsText)
+        ? Translate("NoExtensionsConfigured")
+        : PriorityExtensionsText;
+
+    public string LargeFileThresholdSummary => string.IsNullOrWhiteSpace(LargeFileThresholdKoText)
+        ? "0"
+        : LargeFileThresholdKoText;
+
     public string BusinessSoftwareSummary => string.IsNullOrWhiteSpace(BusinessSoftwareProcessesText)
         ? Translate("NoBusinessSoftwareConfigured")
         : BusinessSoftwareProcessesText;
@@ -220,6 +268,16 @@ public partial class MainWindowViewModel : ViewModelBase
             if (ActiveStatesCount > 0)
             {
                 return Translate("StatusActive");
+            }
+
+            if (PausedStatesCount > 0)
+            {
+                return Translate("StatusPaused");
+            }
+
+            if (StoppedStatesCount > 0)
+            {
+                return Translate("StatusStopped");
             }
 
             if (BlockedStatesCount > 0)
@@ -311,7 +369,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string SelectedJobStatusNote => SelectedJob is null
         ? Translate("SelectJobHint")
-        : Translate("NoPauseMessage");
+        : SelectedJobStateLabel switch
+        {
+            "Paused" => Translate("ExecutionPausedNote"),
+            "Stopped" => Translate("ExecutionStoppedNote"),
+            "Active" => Translate("ExecutionRunningNote"),
+            _ => Translate("ExecutionControlReadyNote")
+        };
 
     public string LatestBackupText => States.Count == 0
         ? Translate("NoDataPlaceholder")
@@ -412,6 +476,7 @@ public partial class MainWindowViewModel : ViewModelBase
         await RefreshStatesAsync();
         await RefreshLogPreviewAsync();
         StatusMessage = Translate("StatusReady");
+        _ = MonitorRuntimeStateAsync(runtimeRefreshCancellationTokenSource.Token);
     }
 
     public void SetSourceDirectory(string path)
@@ -464,6 +529,16 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(EncryptedExtensionsSummary));
     }
 
+    partial void OnPriorityExtensionsTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(PriorityExtensionsSummary));
+    }
+
+    partial void OnLargeFileThresholdKoTextChanged(string value)
+    {
+        OnPropertyChanged(nameof(LargeFileThresholdSummary));
+    }
+
     partial void OnBusinessSoftwareProcessesTextChanged(string value)
     {
         OnPropertyChanged(nameof(BusinessSoftwareSummary));
@@ -488,7 +563,9 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedLanguage = settings.Language;
         SelectedLogFormat = settings.LogFormatName;
         EncryptedExtensionsText = string.Join(";", settings.EncryptedExtensions);
+        PriorityExtensionsText = string.Join(";", settings.PriorityExtensions);
         BusinessSoftwareProcessesText = string.Join(";", settings.BusinessSoftwareProcesses);
+        LargeFileThresholdKoText = settings.LargeFileThresholdKo.ToString(CultureInfo.InvariantCulture);
         CryptoSoftPath = string.IsNullOrWhiteSpace(settings.CryptoSoftPath)
             ? Path.Combine(AppPaths.BaseDirectory, "CryptoSoft")
             : settings.CryptoSoftPath;
@@ -537,21 +614,36 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task RefreshStatesAsync()
     {
-        States = new ObservableCollection<BackupState>(await stateManager.GetStatesAsync());
-        OnPropertyChanged(nameof(ActiveStatesCount));
-        OnPropertyChanged(nameof(FinishedStatesCount));
-        OnPropertyChanged(nameof(BlockedStatesCount));
-        OnPropertyChanged(nameof(ErrorStatesCount));
-        OnPropertyChanged(nameof(GlobalStatusLabel));
-        OnPropertyChanged(nameof(DashboardQuickStatsPercent));
-        OnPropertyChanged(nameof(DashboardQuickStatsText));
-        OnPropertyChanged(nameof(JobsServiceStatusText));
-        OnPropertyChanged(nameof(JobsStorageUsagePercent));
-        OnPropertyChanged(nameof(JobsStorageUsageText));
-        NotifySelectionProperties();
-        RebuildDashboardRows();
-        RebuildJobListRows();
-        await RefreshLogPreviewAsync();
+        if (isRefreshingStates)
+        {
+            return;
+        }
+
+        isRefreshingStates = true;
+        try
+        {
+            States = new ObservableCollection<BackupState>(await stateManager.GetStatesAsync());
+            OnPropertyChanged(nameof(ActiveStatesCount));
+            OnPropertyChanged(nameof(FinishedStatesCount));
+            OnPropertyChanged(nameof(PausedStatesCount));
+            OnPropertyChanged(nameof(StoppedStatesCount));
+            OnPropertyChanged(nameof(BlockedStatesCount));
+            OnPropertyChanged(nameof(ErrorStatesCount));
+            OnPropertyChanged(nameof(GlobalStatusLabel));
+            OnPropertyChanged(nameof(DashboardQuickStatsPercent));
+            OnPropertyChanged(nameof(DashboardQuickStatsText));
+            OnPropertyChanged(nameof(JobsServiceStatusText));
+            OnPropertyChanged(nameof(JobsStorageUsagePercent));
+            OnPropertyChanged(nameof(JobsStorageUsageText));
+            NotifySelectionProperties();
+            RebuildDashboardRows();
+            RebuildJobListRows();
+            await RefreshLogPreviewAsync();
+        }
+        finally
+        {
+            isRefreshingStates = false;
+        }
     }
 
     private async Task SaveSettingsAsync()
@@ -590,37 +682,97 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             ResetJobForm();
+            IsJobFormOverlayVisible = false;
             await RefreshJobsAsync();
         });
     }
 
     private async Task RunSelectedJobAsync()
     {
-        await RunBusyAsync(async () =>
+        if (SelectedJob is null)
         {
-            if (SelectedJob is null)
-            {
-                StatusMessage = Translate("SelectJobFirst");
-                return;
-            }
+            StatusMessage = Translate("SelectJobFirst");
+            return;
+        }
 
-            await settingsRepository.SaveAsync(BuildSettingsFromViewModel());
+        await settingsRepository.SaveAsync(BuildSettingsFromViewModel());
+        if (backupManager.IsJobRunning(SelectedJob.Name))
+        {
+            await backupManager.ResumeJobAsync(SelectedJob.Name);
+            StatusMessage = Translate("ExecutionResumed");
+        }
+        else
+        {
             var jobIndex = Jobs.IndexOf(SelectedJob) + 1;
-            await backupManager.ExecuteJobAsync(jobIndex);
-            await RefreshStatesAsync();
-            StatusMessage = Translate("BackupFinished");
-        });
+            await backupManager.StartJobAsync(jobIndex);
+            StatusMessage = Translate("ExecutionStarted");
+        }
+
+        await RefreshStatesAsync();
     }
 
     private async Task RunAllJobsAsync()
     {
-        await RunBusyAsync(async () =>
+        await settingsRepository.SaveAsync(BuildSettingsFromViewModel());
+
+        var stoppedOrInactiveJobIndexes = Jobs
+            .Select((job, index) => new { job, index })
+            .Where(item => !backupManager.IsJobRunning(item.job.Name))
+            .Select(item => item.index + 1)
+            .ToList();
+
+        await backupManager.ResumeAllJobsAsync();
+        if (stoppedOrInactiveJobIndexes.Count > 0)
         {
-            await settingsRepository.SaveAsync(BuildSettingsFromViewModel());
-            await backupManager.ExecuteAllJobsAsync();
+            await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
+        }
+
+        StatusMessage = Translate("ExecutionStarted");
+        await RefreshStatesAsync();
+    }
+
+    private async Task PauseSelectedJobAsync()
+    {
+        if (SelectedJob is null)
+        {
+            StatusMessage = Translate("SelectJobFirst");
+            return;
+        }
+
+        if (await backupManager.PauseJobAsync(SelectedJob.Name))
+        {
+            StatusMessage = Translate("ExecutionPaused");
             await RefreshStatesAsync();
-            StatusMessage = Translate("BackupFinished");
-        });
+        }
+    }
+
+    private async Task PauseAllJobsAsync()
+    {
+        await backupManager.PauseAllJobsAsync();
+        StatusMessage = Translate("ExecutionPaused");
+        await RefreshStatesAsync();
+    }
+
+    private async Task StopSelectedJobAsync()
+    {
+        if (SelectedJob is null)
+        {
+            StatusMessage = Translate("SelectJobFirst");
+            return;
+        }
+
+        if (await backupManager.StopJobAsync(SelectedJob.Name))
+        {
+            StatusMessage = Translate("ExecutionStopped");
+            await RefreshStatesAsync();
+        }
+    }
+
+    private async Task StopAllJobsAsync()
+    {
+        await backupManager.StopAllJobsAsync();
+        StatusMessage = Translate("ExecutionStopped");
+        await RefreshStatesAsync();
     }
 
     private async Task RunDashboardJobAsync(BackupJob? job)
@@ -653,6 +805,22 @@ public partial class MainWindowViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private async Task MonitorRuntimeStateAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(400));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await RefreshStatesAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 
@@ -700,10 +868,19 @@ public partial class MainWindowViewModel : ViewModelBase
             Language = SelectedLanguage,
             LogFormatName = SelectedLogFormat,
             EncryptedExtensions = SplitList(EncryptedExtensionsText),
+            PriorityExtensions = SplitList(PriorityExtensionsText),
             BusinessSoftwareProcesses = SplitList(BusinessSoftwareProcessesText),
+            LargeFileThresholdKo = ParseLargeFileThresholdKo(LargeFileThresholdKoText),
             CryptoSoftPath = CryptoSoftPath.Trim(),
             CryptoKey = CryptoKey.Trim()
         };
+    }
+
+    private static int ParseLargeFileThresholdKo(string rawValue)
+    {
+        return int.TryParse(rawValue?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var thresholdKo)
+            ? Math.Max(0, thresholdKo)
+            : 0;
     }
 
     private static List<string> SplitList(string rawValue)
@@ -727,7 +904,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private void PrepareCreateJob()
     {
         ResetJobForm();
-        SelectedSectionIndex = 2;
+        SelectedSectionIndex = 1;
+        IsJobFormOverlayVisible = true;
     }
 
     private void EditJob(BackupJob? job)
@@ -743,7 +921,8 @@ public partial class MainWindowViewModel : ViewModelBase
         SourceDirectory = job.SourceDirectory;
         TargetDirectory = job.TargetDirectory;
         SelectedBackupType = job.Type;
-        SelectedSectionIndex = 2;
+        SelectedSectionIndex = 1;
+        IsJobFormOverlayVisible = true;
         StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("EditJobLoaded"), job.Name);
     }
 
@@ -762,6 +941,28 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedJob = job;
         SelectedSectionIndex = 3;
         StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("DashboardJobOpened"), job.Name);
+    }
+
+    private void ToggleSettingsGuide()
+    {
+        IsSettingsGuideVisible = !IsSettingsGuideVisible;
+    }
+
+    private void CloseSettingsGuide()
+    {
+        IsSettingsGuideVisible = false;
+    }
+
+    private void CloseJobFormOverlay()
+    {
+        ResetJobForm();
+        IsJobFormOverlayVisible = false;
+        if (SelectedSectionIndex == 2)
+        {
+            SelectedSectionIndex = 1;
+        }
+
+        StatusMessage = string.Empty;
     }
 
     private BackupState? GetRelevantState()
@@ -817,6 +1018,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 {
                     "Finished" => "JobsStatusSuccess",
                     "Active" => "JobsStatusActive",
+                    "Paused" => "JobsStatusPaused",
+                    "Stopped" => "JobsStatusStopped",
                     "Blocked" => "JobsStatusBlocked",
                     "Error" => "JobsStatusFailed",
                     _ => "JobsStatusPending"

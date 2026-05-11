@@ -61,6 +61,33 @@ public sealed class StateManager
         }
     }
 
+    public async Task SetStateValueAsync(string backupName, string stateValue, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(stateValue);
+
+        await writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            var states = await ReadStatesAsync(cancellationToken);
+            var state = states.FirstOrDefault(existing => string.Equals(existing.Name, backupName, StringComparison.OrdinalIgnoreCase));
+            if (state is null)
+            {
+                return;
+            }
+
+            state.State = stateValue;
+            state.LastActionTimestamp = DateTime.Now;
+
+            await using var stream = File.Create(stateFilePath);
+            await JsonSerializer.SerializeAsync(stream, states, JsonOptions, cancellationToken);
+        }
+        finally
+        {
+            writeLock.Release();
+        }
+    }
+
     private async Task<List<BackupState>> ReadStatesAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(stateFilePath))

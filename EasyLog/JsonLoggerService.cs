@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Collections.Concurrent;
 
 namespace EasyLog;
 
@@ -9,7 +10,7 @@ public sealed class JsonLoggerService : ILoggerService
         WriteIndented = true
     };
 
-    private readonly SemaphoreSlim writeLock = new(1, 1);
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> WriteLocks = new(StringComparer.OrdinalIgnoreCase);
     private readonly string logDirectory;
 
     public JsonLoggerService(string? logDirectory = null)
@@ -22,10 +23,12 @@ public sealed class JsonLoggerService : ILoggerService
     {
         ArgumentNullException.ThrowIfNull(entry);
 
+        var logFilePath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
+        var writeLock = WriteLocks.GetOrAdd(logFilePath, _ => new SemaphoreSlim(1, 1));
+
         await writeLock.WaitAsync(cancellationToken);
         try
         {
-            var logFilePath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
             var entries = await ReadEntriesAsync(logFilePath, cancellationToken);
             entries.Add(entry);
 

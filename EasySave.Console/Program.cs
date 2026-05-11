@@ -20,7 +20,8 @@ if (args.Length > 0)
         CreateLogger,
         settingsRepository,
         new ProcessBusinessSoftwareDetector(),
-        new CryptoSoftEncryptionService());
+        new CryptoSoftEncryptionService(),
+        new FileSystemFileTransferService());
     var parser = new CliArgumentParser();
     var jobs = await jobService.GetJobsAsync();
     var parseResult = parser.Parse(args[0], jobs.Count, jobs.Count, languageSelector.Text);
@@ -44,7 +45,8 @@ var backupManager = new BackupManager(
     CreateLogger,
     settingsRepository,
     new ProcessBusinessSoftwareDetector(),
-    new CryptoSoftEncryptionService());
+    new CryptoSoftEncryptionService(),
+    new FileSystemFileTransferService());
 var menu = new ConsoleMenu(languageSelector, jobService, backupManager);
 await menu.RunAsync();
 return 0;

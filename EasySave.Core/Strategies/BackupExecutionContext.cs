@@ -11,13 +11,21 @@ public sealed class BackupExecutionContext
         ILoggerService logger,
         AppSettings settings,
         IBusinessSoftwareDetector businessSoftwareDetector,
-        IFileEncryptionService fileEncryptionService)
+        IFileEncryptionService fileEncryptionService,
+        PriorityFileCoordinator priorityFileCoordinator,
+        LargeFileTransferCoordinator largeFileTransferCoordinator,
+        IFileTransferService fileTransferService,
+        ExecutionPauseController pauseController)
     {
         StateManager = stateManager;
         Logger = logger;
         Settings = settings;
         BusinessSoftwareDetector = businessSoftwareDetector;
         FileEncryptionService = fileEncryptionService;
+        PriorityFileCoordinator = priorityFileCoordinator;
+        LargeFileTransferCoordinator = largeFileTransferCoordinator;
+        FileTransferService = fileTransferService;
+        PauseController = pauseController;
     }
 
     public StateManager StateManager { get; }
@@ -29,6 +37,14 @@ public sealed class BackupExecutionContext
     public IBusinessSoftwareDetector BusinessSoftwareDetector { get; }
 
     public IFileEncryptionService FileEncryptionService { get; }
+
+    public PriorityFileCoordinator PriorityFileCoordinator { get; }
+
+    public LargeFileTransferCoordinator LargeFileTransferCoordinator { get; }
+
+    public IFileTransferService FileTransferService { get; }
+
+    public ExecutionPauseController PauseController { get; }
 
     public bool IsBlockedByBusinessSoftware { get; set; }
 }

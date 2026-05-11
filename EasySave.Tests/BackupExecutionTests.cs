@@ -186,7 +186,7 @@ public sealed class BackupExecutionTests : IDisposable
     }
 
     [Fact]
-    public async Task BackupStopsWhenBusinessSoftwareIsDetected()
+    public async Task BackupPausesWhileBusinessSoftwareIsDetectedAndResumesAutomatically()
     {
         var sourceDirectory = Path.Combine(testRoot, "source-blocked");
         var targetDirectory = Path.Combine(testRoot, "target-blocked");
@@ -204,8 +204,8 @@ public sealed class BackupExecutionTests : IDisposable
             BusinessSoftwareProcesses = ["calc"]
         });
 
-        var detector = new FakeBusinessSoftwareDetector(
-            [BusinessSoftwareDetectionResult.None, new BusinessSoftwareDetectionResult(true, "calc")]);
+        var detector = new ToggleBusinessSoftwareDetector();
+        var transferService = new DelayedTransferService(TimeSpan.FromMilliseconds(150));
 
         var manager = CreateConfiguredBackupManager(
             logDirectory,
@@ -213,28 +213,315 @@ public sealed class BackupExecutionTests : IDisposable
             sourceDirectory,
             targetDirectory,
             BackupType.Complete,
-            "Blocked Job",
+            "Paused Job",
             settingsRepository,
             detector,
-            new FakeEncryptionService(_ => 0));
+            new FakeEncryptionService(_ => 0),
+            transferService);
 
-        await manager.ExecuteJobAsync(1);
+        var executionTask = await manager.StartJobAsync(1);
+        await transferService.FirstTransferStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        detector.SetDetected("calc");
 
-        var copiedFiles = Directory.Exists(targetDirectory)
-            ? Directory.GetFiles(targetDirectory, "*", SearchOption.AllDirectories)
-            : [];
-        Assert.Single(copiedFiles);
+        await WaitUntilAsync(async () =>
+        {
+            var states = await ReadStateEntriesAsync(statePath);
+            return states.Any(state => state.Name == "Paused Job" && state.State == "Paused");
+        });
+
+        Assert.True(File.Exists(Path.Combine(targetDirectory, "a.txt")));
+        Assert.False(File.Exists(Path.Combine(targetDirectory, "b.txt")));
+
+        detector.Clear();
+        await executionTask;
+
+        Assert.True(File.Exists(Path.Combine(targetDirectory, "b.txt")));
 
         var states = await ReadStateEntriesAsync(statePath);
         var state = Assert.Single(states);
-        Assert.Equal("Blocked", state.State);
-
-        var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
-        Assert.Contains(logEntries, entry => entry.Status == "Blocked" && entry.ErrorMessage!.Contains("calc", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("Finished", state.State);
     }
 
     [Fact]
-    public async Task ExecuteAllJobsStopsSequenceAfterBusinessSoftwareDetection()
+    public async Task CompleteBackupCopiesSingleSourceFileToTargetRoot()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-single-file");
+        var targetDirectory = Path.Combine(testRoot, "target-single-file");
+        var logDirectory = Path.Combine(testRoot, "logs-single-file");
+        var statePath = Path.Combine(testRoot, "state-single-file", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+
+        var sourceFilePath = Path.Combine(sourceDirectory, "photo.jpg");
+        await File.WriteAllTextAsync(sourceFilePath, "photo-content");
+
+        var manager = CreateBackupManager(logDirectory, statePath, sourceFilePath, targetDirectory, BackupType.Complete, "Single File Job");
+
+        await manager.ExecuteJobAsync(1);
+
+        Assert.True(File.Exists(Path.Combine(targetDirectory, "photo.jpg")));
+    }
+
+    [Fact]
+    public async Task CompleteBackupCopiesMultipleSourceFilesWithoutCollisions()
+    {
+        var sourceOne = Path.Combine(testRoot, "source-multi-1");
+        var sourceTwo = Path.Combine(testRoot, "source-multi-2");
+        var targetDirectory = Path.Combine(testRoot, "target-multi-file");
+        var logDirectory = Path.Combine(testRoot, "logs-multi-file");
+        var statePath = Path.Combine(testRoot, "state-multi-file", "state.json");
+        Directory.CreateDirectory(sourceOne);
+        Directory.CreateDirectory(sourceTwo);
+
+        var firstFile = Path.Combine(sourceOne, "shared.txt");
+        var secondFile = Path.Combine(sourceTwo, "shared.txt");
+        await File.WriteAllTextAsync(firstFile, "first");
+        await File.WriteAllTextAsync(secondFile, "second");
+
+        var manager = CreateBackupManager(
+            logDirectory,
+            statePath,
+            $"{firstFile};{secondFile}",
+            targetDirectory,
+            BackupType.Complete,
+            "Multiple File Job");
+
+        await manager.ExecuteJobAsync(1);
+
+        Assert.True(File.Exists(Path.Combine(targetDirectory, "source-multi-1", "shared.txt")));
+        Assert.True(File.Exists(Path.Combine(targetDirectory, "source-multi-2", "shared.txt")));
+    }
+
+    [Fact]
+    public async Task ExecuteAllJobsRunsJobsInParallel()
+    {
+        var sourceOne = Path.Combine(testRoot, "source-parallel-1");
+        var sourceTwo = Path.Combine(testRoot, "source-parallel-2");
+        var targetRoot = Path.Combine(testRoot, "target-parallel");
+        var logDirectory = Path.Combine(testRoot, "logs-parallel");
+        var statePath = Path.Combine(testRoot, "state-parallel", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-parallel", "settings.json");
+
+        Directory.CreateDirectory(sourceOne);
+        Directory.CreateDirectory(sourceTwo);
+        await File.WriteAllTextAsync(Path.Combine(sourceOne, "first.txt"), "one");
+        await File.WriteAllTextAsync(Path.Combine(sourceTwo, "second.txt"), "two");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            EncryptedExtensions = ["*"]
+        });
+
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-parallel", "jobs.json"));
+        var jobService = new BackupJobService(repository);
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Parallel Job 1",
+            SourceDirectory = sourceOne,
+            TargetDirectory = Path.Combine(targetRoot, "job1"),
+            Type = BackupType.Complete
+        });
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Parallel Job 2",
+            SourceDirectory = sourceTwo,
+            TargetDirectory = Path.Combine(targetRoot, "job2"),
+            Type = BackupType.Complete
+        });
+
+        var encryptionService = new ConcurrentProbeEncryptionService(TimeSpan.FromMilliseconds(250));
+
+        var manager = new BackupManager(
+            jobService,
+            new StateManager(statePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            encryptionService,
+            new FileSystemFileTransferService());
+
+        await manager.ExecuteAllJobsAsync();
+
+        Assert.True(File.Exists(Path.Combine(targetRoot, "job1", "first.txt")));
+        Assert.True(File.Exists(Path.Combine(targetRoot, "job2", "second.txt")));
+        Assert.True(encryptionService.MaxConcurrentCalls >= 2, $"Expected overlapping execution but max concurrency was {encryptionService.MaxConcurrentCalls}.");
+    }
+
+    [Fact]
+    public async Task ExecuteAllJobsBlocksNonPriorityFilesWhilePriorityExtensionsArePending()
+    {
+        var prioritySource = Path.Combine(testRoot, "source-priority");
+        var regularSource = Path.Combine(testRoot, "source-regular");
+        var targetRoot = Path.Combine(testRoot, "target-priority");
+        var logDirectory = Path.Combine(testRoot, "logs-priority");
+        var statePath = Path.Combine(testRoot, "state-priority", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-priority", "settings.json");
+
+        Directory.CreateDirectory(prioritySource);
+        Directory.CreateDirectory(regularSource);
+        await File.WriteAllTextAsync(Path.Combine(prioritySource, "urgent.prio"), "priority");
+        await File.WriteAllTextAsync(Path.Combine(regularSource, "later.txt"), "regular");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            EncryptedExtensions = ["*"],
+            PriorityExtensions = [".prio"]
+        });
+
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-priority", "jobs.json"));
+        var jobService = new BackupJobService(repository);
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Priority Job",
+            SourceDirectory = prioritySource,
+            TargetDirectory = Path.Combine(targetRoot, "priority"),
+            Type = BackupType.Complete
+        });
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Regular Job",
+            SourceDirectory = regularSource,
+            TargetDirectory = Path.Combine(targetRoot, "regular"),
+            Type = BackupType.Complete
+        });
+
+        var encryptionService = new ConcurrentProbeEncryptionService(TimeSpan.FromMilliseconds(200));
+        var manager = new BackupManager(
+            jobService,
+            new StateManager(statePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            encryptionService,
+            new FileSystemFileTransferService());
+
+        await manager.ExecuteAllJobsAsync();
+
+        Assert.True(File.Exists(Path.Combine(targetRoot, "priority", "urgent.prio")));
+        Assert.True(File.Exists(Path.Combine(targetRoot, "regular", "later.txt")));
+        Assert.Equal(1, encryptionService.MaxConcurrentCalls);
+    }
+
+    [Fact]
+    public async Task ExecuteAllJobsAllowsOnlyOneLargeFileTransferAtATime()
+    {
+        var sourceOne = Path.Combine(testRoot, "source-large-1");
+        var sourceTwo = Path.Combine(testRoot, "source-large-2");
+        var targetRoot = Path.Combine(testRoot, "target-large");
+        var logDirectory = Path.Combine(testRoot, "logs-large");
+        var statePath = Path.Combine(testRoot, "state-large", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-large", "settings.json");
+
+        Directory.CreateDirectory(sourceOne);
+        Directory.CreateDirectory(sourceTwo);
+        await File.WriteAllBytesAsync(Path.Combine(sourceOne, "big-one.bin"), new byte[2_048]);
+        await File.WriteAllBytesAsync(Path.Combine(sourceTwo, "big-two.bin"), new byte[2_048]);
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            LargeFileThresholdKo = 1
+        });
+
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-large", "jobs.json"));
+        var jobService = new BackupJobService(repository);
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Large Job 1",
+            SourceDirectory = sourceOne,
+            TargetDirectory = Path.Combine(targetRoot, "job1"),
+            Type = BackupType.Complete
+        });
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Large Job 2",
+            SourceDirectory = sourceTwo,
+            TargetDirectory = Path.Combine(targetRoot, "job2"),
+            Type = BackupType.Complete
+        });
+
+        var transferService = new ConcurrentProbeTransferService(
+            TimeSpan.FromMilliseconds(200),
+            path => new FileInfo(path).Length > 1_024);
+
+        var manager = new BackupManager(
+            jobService,
+            new StateManager(statePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0),
+            transferService);
+
+        await manager.ExecuteAllJobsAsync();
+
+        Assert.True(File.Exists(Path.Combine(targetRoot, "job1", "big-one.bin")));
+        Assert.True(File.Exists(Path.Combine(targetRoot, "job2", "big-two.bin")));
+        Assert.Equal(1, transferService.MaxConcurrentLargeTransfers);
+    }
+
+    [Fact]
+    public async Task ExecuteAllJobsStillAllowsSmallTransfersDuringLargeTransfer()
+    {
+        var largeSource = Path.Combine(testRoot, "source-large-mixed");
+        var smallSource = Path.Combine(testRoot, "source-small-mixed");
+        var targetRoot = Path.Combine(testRoot, "target-mixed");
+        var logDirectory = Path.Combine(testRoot, "logs-mixed");
+        var statePath = Path.Combine(testRoot, "state-mixed", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-mixed", "settings.json");
+
+        Directory.CreateDirectory(largeSource);
+        Directory.CreateDirectory(smallSource);
+        await File.WriteAllBytesAsync(Path.Combine(largeSource, "large.bin"), new byte[2_048]);
+        await File.WriteAllBytesAsync(Path.Combine(smallSource, "small.txt"), new byte[512]);
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            LargeFileThresholdKo = 1
+        });
+
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-mixed", "jobs.json"));
+        var jobService = new BackupJobService(repository);
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Large Mixed Job",
+            SourceDirectory = largeSource,
+            TargetDirectory = Path.Combine(targetRoot, "large"),
+            Type = BackupType.Complete
+        });
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Small Mixed Job",
+            SourceDirectory = smallSource,
+            TargetDirectory = Path.Combine(targetRoot, "small"),
+            Type = BackupType.Complete
+        });
+
+        var transferService = new ConcurrentProbeTransferService(
+            TimeSpan.FromMilliseconds(200),
+            path => new FileInfo(path).Length > 1_024);
+
+        var manager = new BackupManager(
+            jobService,
+            new StateManager(statePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0),
+            transferService);
+
+        await manager.ExecuteAllJobsAsync();
+
+        Assert.True(File.Exists(Path.Combine(targetRoot, "large", "large.bin")));
+        Assert.True(File.Exists(Path.Combine(targetRoot, "small", "small.txt")));
+        Assert.Equal(1, transferService.MaxConcurrentLargeTransfers);
+        Assert.True(transferService.MaxConcurrentTransfers >= 2, $"Expected large and small transfers to overlap, but max concurrent transfers was {transferService.MaxConcurrentTransfers}.");
+    }
+
+    [Fact]
+    public async Task ExecuteAllJobsPauseAllJobsWhileBusinessSoftwareIsRunningAndResumeAutomatically()
     {
         var sourceOne = Path.Combine(testRoot, "source-sequence-1");
         var sourceTwo = Path.Combine(testRoot, "source-sequence-2");
@@ -246,7 +533,9 @@ public sealed class BackupExecutionTests : IDisposable
         Directory.CreateDirectory(sourceOne);
         Directory.CreateDirectory(sourceTwo);
         await File.WriteAllTextAsync(Path.Combine(sourceOne, "first.txt"), "one");
+        await File.WriteAllTextAsync(Path.Combine(sourceOne, "third.txt"), "three");
         await File.WriteAllTextAsync(Path.Combine(sourceTwo, "second.txt"), "two");
+        await File.WriteAllTextAsync(Path.Combine(sourceTwo, "fourth.txt"), "four");
 
         var settingsRepository = new AppSettingsRepository(settingsPath);
         await settingsRepository.SaveAsync(new AppSettings
@@ -271,22 +560,134 @@ public sealed class BackupExecutionTests : IDisposable
             Type = BackupType.Complete
         });
 
+        var detector = new ToggleBusinessSoftwareDetector();
+        var transferService = new CountingDelayedTransferService(TimeSpan.FromMilliseconds(150));
         var manager = new BackupManager(
             jobService,
             new StateManager(statePath),
             _ => new JsonLoggerService(logDirectory),
             settingsRepository,
-            new FakeBusinessSoftwareDetector([BusinessSoftwareDetectionResult.None, new BusinessSoftwareDetectionResult(true, "calc")]),
-            new FakeEncryptionService(_ => 0));
+            detector,
+            new FakeEncryptionService(_ => 0),
+            transferService);
 
-        await manager.ExecuteAllJobsAsync();
+        var executionTasks = await manager.StartAllJobsAsync();
+        await transferService.WaitForTransfersStartedAsync(2, TimeSpan.FromSeconds(2));
+        detector.SetDetected("calc");
 
-        Assert.True(File.Exists(Path.Combine(targetRoot, "job1", "first.txt")));
-        Assert.False(File.Exists(Path.Combine(targetRoot, "job2", "second.txt")));
+        await WaitUntilAsync(async () =>
+        {
+            var states = await ReadStateEntriesAsync(statePath);
+            return states.Count(state => state.State == "Paused") == 2;
+        });
+
+        Assert.Single(Directory.GetFiles(Path.Combine(targetRoot, "job1"), "*", SearchOption.AllDirectories));
+        Assert.Single(Directory.GetFiles(Path.Combine(targetRoot, "job2"), "*", SearchOption.AllDirectories));
+
+        detector.Clear();
+        await Task.WhenAll(executionTasks);
 
         var states = await ReadStateEntriesAsync(statePath);
-        Assert.Contains(states, state => state.Name == "Job 1" && state.State == "Blocked");
-        Assert.DoesNotContain(states, state => state.Name == "Job 2");
+        Assert.Equal(2, states.Count(state => state.State == "Finished"));
+        Assert.Equal(2, Directory.GetFiles(Path.Combine(targetRoot, "job1"), "*", SearchOption.AllDirectories).Length);
+        Assert.Equal(2, Directory.GetFiles(Path.Combine(targetRoot, "job2"), "*", SearchOption.AllDirectories).Length);
+    }
+
+    [Fact]
+    public async Task PauseResumeAndStopControlTheSelectedJobInRealTime()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-runtime-control");
+        var targetDirectory = Path.Combine(testRoot, "target-runtime-control");
+        var logDirectory = Path.Combine(testRoot, "logs-runtime-control");
+        var statePath = Path.Combine(testRoot, "state-runtime-control", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-runtime-control", "settings.json");
+
+        Directory.CreateDirectory(sourceDirectory);
+        var firstFile = Path.Combine(sourceDirectory, "a-first.txt");
+        var secondFile = Path.Combine(sourceDirectory, "b-second.txt");
+        await File.WriteAllTextAsync(firstFile, "first");
+        await File.WriteAllTextAsync(secondFile, "second");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings());
+
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-runtime-control", "jobs.json"));
+        var jobService = new BackupJobService(repository);
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Runtime Control Job",
+            SourceDirectory = $"{firstFile};{secondFile}",
+            TargetDirectory = targetDirectory,
+            Type = BackupType.Complete
+        });
+
+        var transferService = new DelayedTransferService(TimeSpan.FromMilliseconds(150));
+        var manager = new BackupManager(
+            jobService,
+            new StateManager(statePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0),
+            transferService);
+
+        var executionTask = await manager.StartJobAsync(1);
+        await transferService.FirstTransferStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        var firstDestinationPath = Path.Combine(targetDirectory, Path.GetFileName(sourceDirectory), "a-first.txt");
+        var secondDestinationPath = Path.Combine(targetDirectory, Path.GetFileName(sourceDirectory), "b-second.txt");
+
+        Assert.True(await manager.PauseJobAsync("Runtime Control Job"));
+        await WaitUntilAsync(async () =>
+        {
+            var states = await ReadStateEntriesAsync(statePath);
+            return states.Any(state => state.Name == "Runtime Control Job" && state.State == "Paused");
+        });
+
+        Assert.True(File.Exists(firstDestinationPath));
+        Assert.False(File.Exists(secondDestinationPath));
+
+        Assert.True(await manager.ResumeJobAsync("Runtime Control Job"));
+        await executionTask;
+
+        Assert.True(File.Exists(secondDestinationPath));
+        var resumedStates = await ReadStateEntriesAsync(statePath);
+        Assert.Contains(resumedStates, state => state.Name == "Runtime Control Job" && state.State == "Finished");
+
+        var stopSourceDirectory = Path.Combine(testRoot, "source-runtime-stop");
+        var stopTargetDirectory = Path.Combine(testRoot, "target-runtime-stop");
+        var stopStatePath = Path.Combine(testRoot, "state-runtime-stop", "state.json");
+        var stopJobsPath = Path.Combine(testRoot, "jobs-runtime-stop", "jobs.json");
+        Directory.CreateDirectory(stopSourceDirectory);
+        var stopFile = Path.Combine(stopSourceDirectory, "stop-me.txt");
+        await File.WriteAllTextAsync(stopFile, "stop-content");
+
+        var stopJobService = new BackupJobService(new BackupJobRepository(stopJobsPath));
+        await stopJobService.AddJobAsync(new BackupJob
+        {
+            Name = "Stop Job",
+            SourceDirectory = stopFile,
+            TargetDirectory = stopTargetDirectory,
+            Type = BackupType.Complete
+        });
+
+        var stopTransferService = new DelayedTransferService(TimeSpan.FromMilliseconds(400));
+        var stopManager = new BackupManager(
+            stopJobService,
+            new StateManager(stopStatePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0),
+            stopTransferService);
+
+        var stopTask = await stopManager.StartJobAsync(1);
+        await stopTransferService.FirstTransferStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(await stopManager.StopJobAsync("Stop Job"));
+        await stopTask;
+
+        var stoppedStates = await ReadStateEntriesAsync(stopStatePath);
+        Assert.Contains(stoppedStates, state => state.Name == "Stop Job" && state.State == "Stopped");
+        Assert.False(File.Exists(Path.Combine(stopTargetDirectory, "stop-me.txt")));
     }
 
     private BackupManager CreateBackupManager(
@@ -324,7 +725,8 @@ public sealed class BackupExecutionTests : IDisposable
         string jobName,
         AppSettingsRepository settingsRepository,
         IBusinessSoftwareDetector businessSoftwareDetector,
-        IFileEncryptionService fileEncryptionService)
+        IFileEncryptionService fileEncryptionService,
+        IFileTransferService? fileTransferService = null)
     {
         var repository = new BackupJobRepository(Path.Combine(testRoot, $"{jobName}-config", "jobs.json"));
         var jobService = new BackupJobService(repository);
@@ -344,7 +746,8 @@ public sealed class BackupExecutionTests : IDisposable
             _ => new JsonLoggerService(logDirectory),
             settingsRepository,
             businessSoftwareDetector,
-            fileEncryptionService);
+            fileEncryptionService,
+            fileTransferService ?? new FileSystemFileTransferService());
     }
 
     private static async Task<List<BackupState>> ReadStateEntriesAsync(string statePath)
@@ -358,6 +761,22 @@ public sealed class BackupExecutionTests : IDisposable
         var logPath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
         var content = await File.ReadAllTextAsync(logPath);
         return JsonSerializer.Deserialize<List<LogEntry>>(content) ?? [];
+    }
+
+    private static async Task WaitUntilAsync(Func<Task<bool>> condition, int timeoutMs = 3000, int pollDelayMs = 50)
+    {
+        var timeoutAt = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        while (DateTime.UtcNow < timeoutAt)
+        {
+            if (await condition())
+            {
+                return;
+            }
+
+            await Task.Delay(pollDelayMs);
+        }
+
+        throw new TimeoutException("Condition was not met before timeout.");
     }
 
     public void Dispose()
@@ -379,18 +798,220 @@ public sealed class BackupExecutionTests : IDisposable
         }
     }
 
+    private sealed class DelayedEncryptionService(TimeSpan delay) : IFileEncryptionService
+    {
+        public async Task<long> EncryptAsync(string filePath, AppSettings settings, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(delay, cancellationToken);
+            return 1;
+        }
+    }
+
+    private sealed class ConcurrentProbeEncryptionService(TimeSpan delay) : IFileEncryptionService
+    {
+        private int currentConcurrentCalls;
+        private int maxConcurrentCalls;
+
+        public int MaxConcurrentCalls => maxConcurrentCalls;
+
+        public async Task<long> EncryptAsync(string filePath, AppSettings settings, CancellationToken cancellationToken = default)
+        {
+            var activeCalls = Interlocked.Increment(ref currentConcurrentCalls);
+            UpdateMax(activeCalls);
+
+            try
+            {
+                await Task.Delay(delay, cancellationToken);
+                return 1;
+            }
+            finally
+            {
+                Interlocked.Decrement(ref currentConcurrentCalls);
+            }
+        }
+
+        private void UpdateMax(int activeCalls)
+        {
+            int snapshot;
+            do
+            {
+                snapshot = maxConcurrentCalls;
+                if (activeCalls <= snapshot)
+                {
+                    return;
+                }
+            }
+            while (Interlocked.CompareExchange(ref maxConcurrentCalls, activeCalls, snapshot) != snapshot);
+        }
+    }
+
+    private sealed class DelayedByFileEncryptionService(Func<string, TimeSpan> delayFactory) : IFileEncryptionService
+    {
+        public async Task<long> EncryptAsync(string filePath, AppSettings settings, CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(delayFactory(filePath), cancellationToken);
+            return 1;
+        }
+    }
+
+    private sealed class ConcurrentProbeTransferService(
+        TimeSpan delay,
+        Func<string, bool> isLargeFilePredicate) : IFileTransferService
+    {
+        private int currentConcurrentTransfers;
+        private int currentConcurrentLargeTransfers;
+        private int maxConcurrentTransfers;
+        private int maxConcurrentLargeTransfers;
+
+        public int MaxConcurrentTransfers => maxConcurrentTransfers;
+
+        public int MaxConcurrentLargeTransfers => maxConcurrentLargeTransfers;
+
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        {
+            var isLargeFile = isLargeFilePredicate(sourceFilePath);
+            var activeTransfers = Interlocked.Increment(ref currentConcurrentTransfers);
+            UpdateMax(ref maxConcurrentTransfers, activeTransfers);
+
+            if (isLargeFile)
+            {
+                var activeLargeTransfers = Interlocked.Increment(ref currentConcurrentLargeTransfers);
+                UpdateMax(ref maxConcurrentLargeTransfers, activeLargeTransfers);
+            }
+
+            try
+            {
+                await Task.Delay(delay, cancellationToken);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath)!);
+                await File.WriteAllTextAsync(destinationFilePath, await File.ReadAllTextAsync(sourceFilePath, cancellationToken), cancellationToken);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref currentConcurrentTransfers);
+                if (isLargeFile)
+                {
+                    Interlocked.Decrement(ref currentConcurrentLargeTransfers);
+                }
+            }
+        }
+
+        private static void UpdateMax(ref int target, int candidate)
+        {
+            int snapshot;
+            do
+            {
+                snapshot = target;
+                if (candidate <= snapshot)
+                {
+                    return;
+                }
+            }
+            while (Interlocked.CompareExchange(ref target, candidate, snapshot) != snapshot);
+        }
+    }
+
+    private sealed class DelayedTransferService(TimeSpan delay) : IFileTransferService
+    {
+        private int transferCount;
+
+        public TaskCompletionSource FirstTransferStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Increment(ref transferCount) == 1)
+            {
+                FirstTransferStarted.TrySetResult();
+            }
+
+            await Task.Delay(delay, cancellationToken);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath)!);
+
+            await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+            await using var destinationStream = new FileStream(destinationFilePath, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+        }
+    }
+
+    private sealed class CountingDelayedTransferService(TimeSpan delay) : IFileTransferService
+    {
+        private readonly TaskCompletionSource startedTransfersCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int transferCount;
+
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        {
+            var startedTransfers = Interlocked.Increment(ref transferCount);
+            if (startedTransfers >= 2)
+            {
+                startedTransfersCompletionSource.TrySetResult();
+            }
+
+            await Task.Delay(delay, cancellationToken);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath)!);
+
+            await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+            await using var destinationStream = new FileStream(destinationFilePath, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+        }
+
+        public Task WaitForTransfersStartedAsync(int minimumTransfers, TimeSpan timeout)
+        {
+            if (minimumTransfers <= 1 && Volatile.Read(ref transferCount) >= minimumTransfers)
+            {
+                return Task.CompletedTask;
+            }
+
+            return startedTransfersCompletionSource.Task.WaitAsync(timeout);
+        }
+    }
+
     private sealed class FakeBusinessSoftwareDetector(IEnumerable<BusinessSoftwareDetectionResult> results) : IBusinessSoftwareDetector
     {
         private readonly Queue<BusinessSoftwareDetectionResult> queuedResults = new(results);
+        private readonly object syncLock = new();
 
         public BusinessSoftwareDetectionResult Detect(AppSettings settings)
         {
-            if (queuedResults.Count == 0)
+            lock (syncLock)
             {
-                return BusinessSoftwareDetectionResult.None;
-            }
+                if (queuedResults.Count == 0)
+                {
+                    return BusinessSoftwareDetectionResult.None;
+                }
 
-            return queuedResults.Dequeue();
+                return queuedResults.Dequeue();
+            }
+        }
+    }
+
+    private sealed class ToggleBusinessSoftwareDetector : IBusinessSoftwareDetector
+    {
+        private readonly object syncLock = new();
+        private string detectedProcessName = string.Empty;
+
+        public BusinessSoftwareDetectionResult Detect(AppSettings settings)
+        {
+            lock (syncLock)
+            {
+                return string.IsNullOrWhiteSpace(detectedProcessName)
+                    ? BusinessSoftwareDetectionResult.None
+                    : new BusinessSoftwareDetectionResult(true, detectedProcessName);
+            }
+        }
+
+        public void SetDetected(string processName)
+        {
+            lock (syncLock)
+            {
+                detectedProcessName = processName;
+            }
+        }
+
+        public void Clear()
+        {
+            lock (syncLock)
+            {
+                detectedProcessName = string.Empty;
+            }
         }
     }
 }
