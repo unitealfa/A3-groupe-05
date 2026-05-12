@@ -114,16 +114,16 @@ public sealed class BackupManager
         return await StartJobsInternalAsync(selectedJobs, cancellationToken);
     }
 
-    public async Task<bool> PauseJobAsync(string jobName, CancellationToken cancellationToken = default)
+    public Task<bool> PauseJobAsync(string jobName, CancellationToken cancellationToken = default)
     {
         var session = GetSession(jobName);
         if (session is null)
         {
-            return false;
+            return Task.FromResult(false);
         }
 
         session.PauseController.Pause();
-        return true;
+        return Task.FromResult(true);
     }
 
     public async Task<bool> ResumeJobAsync(string jobName, CancellationToken cancellationToken = default)
@@ -153,12 +153,14 @@ public sealed class BackupManager
         return true;
     }
 
-    public async Task PauseAllJobsAsync(CancellationToken cancellationToken = default)
+    public Task PauseAllJobsAsync(CancellationToken cancellationToken = default)
     {
         foreach (var session in GetSessionsSnapshot())
         {
             session.PauseController.Pause();
         }
+
+        return Task.CompletedTask;
     }
 
     public async Task ResumeAllJobsAsync(CancellationToken cancellationToken = default)

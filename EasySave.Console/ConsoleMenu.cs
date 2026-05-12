@@ -331,6 +331,8 @@ public sealed class ConsoleMenu
             ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),
+            InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => languageSelector.Text("BackupNameAlreadyExists"),
+            InvalidOperationException when exception.Message.StartsWith("The backup target directory cannot", StringComparison.Ordinal) => languageSelector.Text("SourceTargetOverlap"),
             InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => languageSelector.Text("TargetDirectoryCreationFailed"),
             _ => exception.Message
         };

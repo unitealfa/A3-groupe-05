@@ -243,6 +243,38 @@ public sealed class BackupExecutionTests : IDisposable
     }
 
     [Fact]
+    public async Task BackupLogsNegativeTransferMetricWhenCopyFails()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-copy-error");
+        var targetDirectory = Path.Combine(testRoot, "target-copy-error");
+        var logDirectory = Path.Combine(testRoot, "logs-copy-error");
+        var statePath = Path.Combine(testRoot, "state-copy-error", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "broken.txt"), "content");
+
+        var manager = CreateConfiguredBackupManager(
+            logDirectory,
+            statePath,
+            sourceDirectory,
+            targetDirectory,
+            BackupType.Complete,
+            "Copy Error Job",
+            new AppSettingsRepository(Path.Combine(testRoot, "config-copy-error", "settings.json")),
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0),
+            new FailingTransferService());
+
+        await manager.ExecuteJobAsync(1);
+
+        var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
+        var entry = Assert.Single(logEntries);
+        Assert.Equal("Error", entry.Status);
+        Assert.True(entry.TransferTimeMs < 0);
+        Assert.True(entry.EncryptionTimeMs < 0);
+    }
+
+    [Fact]
     public async Task CompleteBackupCopiesSingleSourceFileToTargetRoot()
     {
         var sourceDirectory = Path.Combine(testRoot, "source-single-file");
@@ -929,6 +961,14 @@ public sealed class BackupExecutionTests : IDisposable
             await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
             await using var destinationStream = new FileStream(destinationFilePath, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+        }
+    }
+
+    private sealed class FailingTransferService : IFileTransferService
+    {
+        public Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        {
+            throw new IOException("Simulated copy failure.");
         }
     }
 

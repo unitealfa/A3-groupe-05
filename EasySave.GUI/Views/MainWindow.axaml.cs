@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Controls.Selection;
 using Avalonia.Platform.Storage;
 using EasySave.GUI.ViewModels;
 
@@ -64,5 +65,20 @@ public partial class MainWindow : Window
         {
             ViewModel?.SetSourceDirectory(selectedSource);
         }
+    }
+
+    private void JobsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ListBox listBox || ViewModel is null)
+        {
+            return;
+        }
+
+        var selectedJobs = listBox.SelectedItems?
+            .OfType<JobListRow>()
+            .Select(row => row.Job)
+            .ToList() ?? [];
+
+        ViewModel.SetSelectedJobs(selectedJobs);
     }
 }
