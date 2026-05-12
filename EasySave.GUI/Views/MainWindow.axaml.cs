@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using EasySave.GUI.ViewModels;
+using Avalonia.Controls.Selection;
 
 namespace EasySave.GUI.Views;
 
@@ -55,7 +56,6 @@ public partial class MainWindow : Window
             onPicked(localPath);
         }
     }
-
     private async Task PickSourceAsync()
     {
         var picker = new SourceSelectionWindow(ViewModel?.SourceDirectory);
@@ -64,5 +64,20 @@ public partial class MainWindow : Window
         {
             ViewModel?.SetSourceDirectory(selectedSource);
         }
+    }
+
+    private void JobsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is not ListBox listBox || ViewModel is null)
+        {
+            return;
+        }
+
+        var selectedJobs = listBox.SelectedItems?
+            .OfType<JobListRow>()
+            .Select(row => row.Job)
+            .ToList() ?? [];
+
+        ViewModel.SetSelectedJobs(selectedJobs);
     }
 }

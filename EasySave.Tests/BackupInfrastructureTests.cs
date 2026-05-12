@@ -51,6 +51,42 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
+    public void ValidateJobRejectsTargetDirectoryThatMatchesSourceDirectory()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "same-folder-source");
+        Directory.CreateDirectory(sourceDirectory);
+
+        var job = new BackupJob
+        {
+            Name = "Same Folder",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = sourceDirectory,
+            Type = BackupType.Complete
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => BackupJobService.ValidateJob(job));
+        Assert.Contains("target directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateJobRejectsTargetDirectoryInsideSourceDirectory()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "nested-source");
+        Directory.CreateDirectory(sourceDirectory);
+
+        var job = new BackupJob
+        {
+            Name = "Nested Folder",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = Path.Combine(sourceDirectory, "backup"),
+            Type = BackupType.Complete
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => BackupJobService.ValidateJob(job));
+        Assert.Contains("target directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task AddJobAsyncAllowsMoreThanFiveJobs()
     {
         var repository = new BackupJobRepository(Path.Combine(testRoot, "config", "jobs.json"));
@@ -72,6 +108,111 @@ public sealed class BackupInfrastructureTests : IDisposable
 
         var jobs = await service.GetJobsAsync();
         Assert.Equal(8, jobs.Count);
+    }
+
+    [Fact]
+    public async Task AddJobAsyncRejectsDuplicateJobNameIgnoringCase()
+    {
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "duplicate-config", "jobs.json"));
+        var service = new BackupJobService(repository);
+        var sourceDirectory = Path.Combine(testRoot, "duplicate-source");
+        var targetDirectory = Path.Combine(testRoot, "duplicate-target");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await service.AddJobAsync(new BackupJob
+        {
+            Name = "Work Backup",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = Path.Combine(targetDirectory, "one"),
+            Type = BackupType.Complete
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddJobAsync(new BackupJob
+        {
+            Name = "work backup",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = Path.Combine(targetDirectory, "two"),
+            Type = BackupType.Differential
+        }));
+
+        Assert.Contains("already exists", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateJobAsyncRejectsRenameToExistingJobNameIgnoringCase()
+    {
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "rename-config", "jobs.json"));
+        var service = new BackupJobService(repository);
+        var sourceDirectory = Path.Combine(testRoot, "rename-source");
+        var targetDirectory = Path.Combine(testRoot, "rename-target");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await service.AddJobAsync(new BackupJob
+        {
+            Name = "Job 1",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = Path.Combine(targetDirectory, "one"),
+            Type = BackupType.Complete
+        });
+
+        await service.AddJobAsync(new BackupJob
+        {
+            Name = "Job 2",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = Path.Combine(targetDirectory, "two"),
+            Type = BackupType.Complete
+        });
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateJobAsync("Job 2", new BackupJob
+        {
+            Name = "job 1",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = Path.Combine(targetDirectory, "two-updated"),
+            Type = BackupType.Differential
+        }));
+
+        Assert.Contains("already exists", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task DeleteJobAsyncRemovesExistingJob()
+    {
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "delete-config", "jobs.json"));
+        var service = new BackupJobService(repository);
+        var sourceDirectory = Path.Combine(testRoot, "delete-source");
+        var targetDirectory = Path.Combine(testRoot, "delete-target");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await service.AddJobAsync(new BackupJob
+        {
+            Name = "Delete Me",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = targetDirectory,
+            Type = BackupType.Complete
+        });
+
+        await service.DeleteJobAsync("delete me");
+
+        var jobs = await service.GetJobsAsync();
+        Assert.Empty(jobs);
+    }
+
+    [Fact]
+    public async Task StateManagerRemoveStateAsyncDeletesMatchingState()
+    {
+        var statePath = Path.Combine(testRoot, "remove-state", "state.json");
+        var stateManager = new StateManager(statePath);
+
+        await stateManager.UpdateAsync(new BackupState
+        {
+            Name = "Job To Remove",
+            State = "Finished"
+        });
+
+        await stateManager.RemoveStateAsync("job to remove");
+
+        var states = await stateManager.GetStatesAsync();
+        Assert.Empty(states);
     }
 
     [Fact]

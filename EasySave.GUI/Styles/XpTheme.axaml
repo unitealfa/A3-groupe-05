@@ -25,6 +25,37 @@
         <Setter Property="Foreground" Value="#1B1B1B" />
     </Style>
 
+    <Style Selector="TextBlock.caption">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.label">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.panel-title">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.metric-caption">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style Selector="TextBlock.metric-value">
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="MaxLines" Value="1" />
+    </Style>
+
+    <Style Selector="TextBlock.window-title">
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="MaxLines" Value="1" />
+    </Style>
+
+    <Style Selector="TextBlock.window-subtitle">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="MaxLines" Value="2" />
+    </Style>
+
     <Style Selector="Border.xp-titlebar">
         <Setter Property="Height" Value="30" />
         <Setter Property="Background">
@@ -121,7 +152,7 @@
     </Style>
 
     <Style Selector="Border.xp-statusbar">
-        <Setter Property="Height" Value="25" />
+        <Setter Property="MinHeight" Value="25" />
         <Setter Property="Background" Value="#F0F0ED" />
         <Setter Property="BorderBrush" Value="#ACA899" />
         <Setter Property="BorderThickness" Value="0,1,0,0" />
@@ -192,6 +223,10 @@
         <Setter Property="Padding" Value="12,6" />
         <Setter Property="CornerRadius" Value="0" />
         <Setter Property="MinHeight" Value="30" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+        <Setter Property="TextBlock.TextAlignment" Value="Center" />
+        <Setter Property="TextBlock.MaxLines" Value="2" />
     </Style>
 
     <Style Selector="Button:pointerover">
@@ -228,6 +263,15 @@
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Padding" Value="14,8" />
         <Setter Property="Margin" Value="0,0,0,4" />
+        <Setter Property="TextBlock.TextAlignment" Value="Left" />
+    </Style>
+
+    <Style Selector="Button.xp-action-button">
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="TextBlock.MaxLines" Value="1" />
+        <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
     <Style Selector="Button.xp-menu-button">
@@ -238,6 +282,8 @@
         <Setter Property="Foreground" Value="#F2F6FF" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextBlock.MaxLines" Value="1" />
+        <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
     <Style Selector="Button.xp-menu-button:pointerover">
@@ -326,6 +372,8 @@
         <Setter Property="Margin" Value="8,0,8,2" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
+        <Setter Property="TextBlock.MaxLines" Value="2" />
     </Style>
 
     <Style Selector="TabItem:pointerover">

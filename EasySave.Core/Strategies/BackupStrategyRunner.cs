@@ -117,7 +117,7 @@ internal static class BackupStrategyRunner
                     remainingSize -= sourceFile.Length;
                     state.State = "Error";
                     UpdateProgress(state, plannedFiles.Count, copiedFiles, remainingSize);
-                    await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, stopwatch.ElapsedMilliseconds, -1, "Error", exception.Message), cancellationToken);
+                    await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, ToNegativeMetric(stopwatch.ElapsedMilliseconds), -1, "Error", exception.Message), cancellationToken);
                     await context.StateManager.UpdateAsync(state, cancellationToken);
                 }
                 finally
@@ -221,6 +221,13 @@ internal static class BackupStrategyRunner
         string status,
         string? errorMessage = null)
     {
+        if (string.Equals(status, "Error", StringComparison.OrdinalIgnoreCase) &&
+            transferTimeMs >= 0 &&
+            encryptionTimeMs >= 0)
+        {
+            transferTimeMs = ToNegativeMetric(transferTimeMs);
+        }
+
         return new LogEntry
         {
             Timestamp = DateTime.Now,
@@ -233,6 +240,11 @@ internal static class BackupStrategyRunner
             Status = status,
             ErrorMessage = errorMessage
         };
+    }
+
+    private static long ToNegativeMetric(long value)
+    {
+        return value <= 0 ? -1 : -Math.Abs(value);
     }
 
     private static async Task WaitForBusinessSoftwareToStopAsync(

@@ -9,11 +9,11 @@
         x:Class="EasySave.GUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Width="1460"
+        Width="1500"
         Height="940"
-        MinWidth="1240"
+        MinWidth="1320"
         MinHeight="820"
-        Title="EasySave 2.0">
+        Title="{Binding Texts[AppTitle]}">
 
     <Design.DataContext>
         <vm:MainWindowViewModel />
@@ -21,8 +21,8 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0" Classes="xp-menubar">
-            <Grid ColumnDefinitions="Auto,* ,Auto" Margin="12,0">
-                <TextBlock Text="{Binding Texts[ShellTitle]}" Classes="window-title" VerticalAlignment="Center" />
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="12,0" ColumnSpacing="10">
+                <TextBlock Text="{Binding Texts[ShellTitle]}" Classes="window-title" VerticalAlignment="Center" MaxWidth="220" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,0" Spacing="0">
                     <Button Classes="xp-menu-button primary"
                             Content="{Binding Texts[MenuFile]}"
@@ -58,7 +58,7 @@
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                             <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
-                                            <TextBlock Text="{Binding Texts[DashboardWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            <TextBlock Text="{Binding Texts[DashboardWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                             <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
@@ -116,7 +116,7 @@
                                             <Grid RowDefinitions="Auto,*">
                                                 <Border Background="#E2E2E2" BorderBrush="#C3C6D7" BorderThickness="0,0,0,1" Padding="10,6">
                                                     <Grid ColumnDefinitions="*,Auto">
-                                                        <TextBlock Text="{Binding Texts[DashboardRecentJobs]}" FontWeight="Bold" FontSize="12" Foreground="#424655" />
+                                                        <TextBlock Text="{Binding Texts[DashboardRecentJobs]}" FontWeight="Bold" FontSize="12" Foreground="#424655" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                         <Button Grid.Column="1"
                                                                 Content="{Binding Texts[RefreshJobs]}"
                                                                 Command="{Binding RefreshJobsCommand}"
@@ -126,11 +126,11 @@
                                                 </Border>
                                                 <Grid Grid.Row="1" RowDefinitions="Auto,*">
                                                     <Border Background="#E8E8E8" BorderBrush="#737686" BorderThickness="0,0,0,1" Padding="8,6">
-                                                        <Grid ColumnDefinitions="2.3*,1.4*,1.1*,0.9*" ColumnSpacing="0">
-                                                            <TextBlock Text="{Binding Texts[DashboardTableJobName]}" FontWeight="Bold" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding Texts[DashboardTableStatus]}" FontWeight="Bold" />
-                                                            <TextBlock Grid.Column="2" Text="{Binding Texts[DashboardTableCompletion]}" FontWeight="Bold" />
-                                                            <TextBlock Grid.Column="3" Text="{Binding Texts[DashboardTableAction]}" FontWeight="Bold" />
+                                                        <Grid ColumnDefinitions="2.3*,1.4*,1.1*,1.1*" ColumnSpacing="0">
+                                                            <TextBlock Text="{Binding Texts[DashboardTableJobName]}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Texts[DashboardTableStatus]}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Grid.Column="2" Text="{Binding Texts[DashboardTableCompletion]}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Grid.Column="3" Text="{Binding Texts[DashboardTableAction]}" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
                                                         </Grid>
                                                     </Border>
                                                     <ListBox Grid.Row="1"
@@ -141,16 +141,16 @@
                                                         <ListBox.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Border Classes="xp-row" Padding="8,6">
-                                                                    <Grid ColumnDefinitions="2.3*,1.4*,1.1*,0.9*">
-                                                                        <TextBlock Text="{Binding Name}" />
-                                                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#1D8F2F" FontWeight="Bold" />
-                                                                        <TextBlock Grid.Column="2" Text="{Binding Completion}" />
+                                                                    <Grid ColumnDefinitions="2.3*,1.4*,1.1*,1.1*" ColumnSpacing="8">
+                                                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#1D8F2F" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                        <TextBlock Grid.Column="2" Text="{Binding Completion}" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                                         <Button Grid.Column="3"
                                                                                 Content="{Binding $parent[Window].DataContext.Texts[DashboardOpenJob]}"
                                                                                 Command="{Binding $parent[Window].DataContext.OpenDashboardJobCommand}"
                                                                                 CommandParameter="{Binding Job}"
-                                                                                Padding="6,2"
-                                                                                MinHeight="22" />
+                                                                                Classes="xp-action-button"
+                                                                                MinWidth="96" />
                                                                     </Grid>
                                                                 </Border>
                                                             </DataTemplate>
@@ -196,25 +196,26 @@
                                     <StackPanel Orientation="Horizontal" Spacing="20">
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Text="◷" Foreground="#424655" />
-                                            <TextBlock Text="{Binding DashboardFooterCenterText}" Classes="caption" />
+                                            <TextBlock Text="{Binding DashboardFooterCenterText}" Classes="caption" MaxWidth="280" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Text="⌂" Foreground="#424655" />
-                                            <TextBlock Text="{Binding DashboardFooterRightText}" Classes="caption" />
+                                            <TextBlock Text="{Binding DashboardFooterRightText}" Classes="caption" MaxWidth="280" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </StackPanel>
                                     </StackPanel>
 
                                     <Border Classes="xp-alert" BorderBrush="#ACA899" Background="#F0F0ED">
-                                        <Grid ColumnDefinitions="2.4*,1.2*" ColumnSpacing="8">
-                                            <StackPanel Orientation="Horizontal" Spacing="18">
-                                                <TextBlock Text="{Binding Texts[DashboardFooterSystemLog]}" Foreground="#444444" FontWeight="Bold" />
+                                        <Grid ColumnDefinitions="2.1*,1.5*" ColumnSpacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="14">
+                                                <TextBlock Text="{Binding Texts[DashboardFooterSystemLog]}" Foreground="#444444" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                 <Button Content="{Binding Texts[DashboardFooterNetworkStatus]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
                                                 <Button Content="{Binding Texts[DashboardFooterMedia]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="5" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
                                             </StackPanel>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding Texts[DashboardFooterCopyright]}"
                                                        HorizontalAlignment="Right"
-                                                       Classes="caption" />
+                                                       Classes="caption"
+                                                       TextWrapping="Wrap" />
                                         </Grid>
                                     </Border>
                                 </StackPanel>
@@ -233,7 +234,7 @@
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Texts[JobsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                                <TextBlock Text="{Binding Texts[JobsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                                 <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
@@ -268,53 +269,66 @@
                                     <Border Grid.Row="2" Margin="10" Background="White" BorderBrush="#716F64" BorderThickness="1" Padding="0">
                                         <Grid RowDefinitions="Auto,*">
                                             <Border Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="10,8">
-                                                <Grid ColumnDefinitions="1.25*,1.8*,1.8*,0.8*,1.15*,0.9*,0.95*" ColumnSpacing="10">
-                                                    <TextBlock Text="{Binding Texts[ColumnName]}" Classes="label" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding Texts[ColumnSource]}" Classes="label" />
-                                                    <TextBlock Grid.Column="2" Text="{Binding Texts[ColumnTarget]}" Classes="label" />
-                                                    <TextBlock Grid.Column="3" Text="{Binding Texts[ColumnType]}" Classes="label" />
-                                                    <TextBlock Grid.Column="4" Text="{Binding Texts[JobsLastRunColumn]}" Classes="label" />
-                                                    <TextBlock Grid.Column="5" Text="{Binding Texts[ColumnStatus]}" Classes="label" />
-                                                    <TextBlock Grid.Column="6" Text="{Binding Texts[JobsActionsColumn]}" Classes="label" />
+                                                <Grid ColumnDefinitions="1.2*,1.75*,1.75*,0.85*,1.05*,0.85*,1.55*" ColumnSpacing="10">
+                                                    <TextBlock Text="{Binding Texts[ColumnName]}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Texts[ColumnSource]}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Texts[ColumnTarget]}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding Texts[ColumnType]}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="4" Text="{Binding Texts[JobsLastRunColumn]}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="5" Text="{Binding Texts[ColumnStatus]}" Classes="label" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Grid.Column="6" Text="{Binding Texts[JobsActionsColumn]}" Classes="label" TextTrimming="CharacterEllipsis" />
                                                 </Grid>
                                             </Border>
 
-                                            <ListBox Grid.Row="1"
+                                            <ListBox x:Name="JobsListBox"
+                                                     Grid.Row="1"
                                                      Classes="xp-list"
                                                      Background="White"
                                                      BorderThickness="0"
                                                      ItemsSource="{Binding JobListRows}"
+                                                     SelectionMode="Multiple"
+                                                     SelectionChanged="JobsListBox_SelectionChanged"
                                                      SelectedValue="{Binding SelectedJob}"
                                                      SelectedValueBinding="{Binding Job}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <Border Classes="xp-row" Padding="10,8">
-                                                            <Grid ColumnDefinitions="1.25*,1.8*,1.8*,0.8*,1.15*,0.9*,0.95*" ColumnSpacing="10">
-                                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#0043B0" />
+                                                            <Grid ColumnDefinitions="1.2*,1.75*,1.75*,0.85*,1.05*,0.85*,1.55*" ColumnSpacing="10">
+                                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#0043B0" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                                 <TextBlock Grid.Column="1" Text="{Binding Source}" TextWrapping="Wrap" />
                                                                 <TextBlock Grid.Column="2" Text="{Binding Destination}" TextWrapping="Wrap" />
                                                                 <Border Grid.Column="3" Classes="xp-badge">
                                                                     <TextBlock Text="{Binding Type}" HorizontalAlignment="Center" />
                                                                 </Border>
-                                                                <TextBlock Grid.Column="4" Text="{Binding LastRun}" />
-                                                                <TextBlock Grid.Column="5" Text="{Binding Status}" FontWeight="Bold" />
-                                                                <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="6">
+                                                                <TextBlock Grid.Column="4" Text="{Binding LastRun}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <TextBlock Grid.Column="5" Text="{Binding Status}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                <Grid Grid.Column="6" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="6">
                                                                     <Button Content="{Binding $parent[Window].DataContext.Texts[RunJobNow]}"
                                                                             Command="{Binding $parent[Window].DataContext.RunDashboardJobCommand}"
                                                                             CommandParameter="{Binding Job}"
-                                                                            Padding="6,2"
-                                                                            MinHeight="22" />
-                                                                    <Button Content="{Binding $parent[Window].DataContext.Texts[EditJobAction]}"
+                                                                            Classes="xp-action-button"
+                                                                            MinWidth="88" />
+                                                                    <Button Grid.Column="1"
+                                                                            Content="{Binding $parent[Window].DataContext.Texts[StopJob]}"
+                                                                            Command="{Binding $parent[Window].DataContext.StopDashboardJobCommand}"
+                                                                            CommandParameter="{Binding Job}"
+                                                                            IsEnabled="{Binding CanStop}"
+                                                                            Classes="xp-action-button"
+                                                                            MinWidth="88" />
+                                                                    <Button Grid.Row="1"
+                                                                            Content="{Binding $parent[Window].DataContext.Texts[EditJobAction]}"
                                                                             Command="{Binding $parent[Window].DataContext.EditJobCommand}"
                                                                             CommandParameter="{Binding Job}"
-                                                                            Padding="6,2"
-                                                                            MinHeight="22" />
-                                                                    <Button Content="{Binding $parent[Window].DataContext.Texts[DashboardOpenJob]}"
-                                                                            Command="{Binding $parent[Window].DataContext.OpenDashboardJobCommand}"
+                                                                            Classes="xp-action-button"
+                                                                            MinWidth="88" />
+                                                                    <Button Grid.Row="1"
+                                                                            Grid.Column="1"
+                                                                            Content="{Binding $parent[Window].DataContext.Texts[DeleteJobAction]}"
+                                                                            Command="{Binding $parent[Window].DataContext.DeleteJobCommand}"
                                                                             CommandParameter="{Binding Job}"
-                                                                            Padding="6,2"
-                                                                            MinHeight="22" />
-                                                                </StackPanel>
+                                                                            Classes="xp-action-button"
+                                                                            MinWidth="88" />
+                                                                </Grid>
                                                             </Grid>
                                                         </Border>
                                                     </DataTemplate>
@@ -465,6 +479,48 @@
                             </Border>
                         </Grid>
                     </Border>
+                    <Border Background="#66000000"
+                            IsVisible="{Binding IsDeleteConfirmationVisible}">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                            <Border Width="460" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[DeleteJobConfirmTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1"
+                                                    Width="24"
+                                                    Height="24"
+                                                    Content="×"
+                                                    Foreground="White"
+                                                    FontSize="14"
+                                                    FontWeight="Bold"
+                                                    Padding="0"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    Background="#E81123"
+                                                    BorderBrush="#FFFFFF66"
+                                                    BorderThickness="1"
+                                                    Command="{Binding CancelDeleteJobCommand}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="14">
+                                        <TextBlock Text="{Binding DeleteConfirmationText}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Content="{Binding Texts[DeleteJobConfirmButton]}"
+                                                    Command="{Binding ConfirmDeleteJobCommand}"
+                                                    Classes="xp-primary" />
+                                            <Button Content="{Binding Texts[DeleteJobCancelButton]}"
+                                                    Command="{Binding CancelDeleteJobCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
                     </Grid>
                 </TabItem>
 
@@ -560,7 +616,7 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Texts[ExecutionWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                                <TextBlock Text="{Binding Texts[ExecutionWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                                 <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
@@ -582,7 +638,7 @@
                                                 <TextBlock Text="↻" FontSize="34" Foreground="#0043B0" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding SelectedJobName}" FontWeight="Bold" FontSize="18" Foreground="#0043B0" />
+                                                <TextBlock Text="{Binding SelectedJobName}" FontWeight="Bold" FontSize="18" Foreground="#0043B0" TextWrapping="Wrap" MaxLines="2" />
                                                 <TextBlock Text="{Binding Texts[ExecutionCurrentFileLabel]}" Classes="label" />
                                                 <TextBlock Text="{Binding SelectedJobCurrentSource}" TextWrapping="Wrap" />
                                             </StackPanel>
@@ -641,7 +697,7 @@
                                                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                                                         <Button Content="{Binding Texts[PlayJob]}" Command="{Binding RunSelectedJobCommand}" Classes="xp-primary" />
                                                         <Button Grid.Column="1" Content="{Binding Texts[PauseJob]}" Command="{Binding PauseSelectedJobCommand}" />
-                                                        <Button Grid.Column="2" Content="{Binding Texts[StopJob]}" Command="{Binding StopSelectedJobCommand}" />
+                                                        <Button Grid.Column="2" Content="{Binding Texts[StopJob]}" Command="{Binding StopSelectedJobCommand}" IsEnabled="{Binding CanStopSelectedJob}" />
                                                     </Grid>
                                                 </StackPanel>
                                             </Border>
@@ -651,7 +707,7 @@
                                                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                                                         <Button Content="{Binding Texts[PlayAllJobs]}" Command="{Binding RunAllJobsCommand}" Classes="xp-primary" />
                                                         <Button Grid.Column="1" Content="{Binding Texts[PauseAllJobs]}" Command="{Binding PauseAllJobsCommand}" />
-                                                        <Button Grid.Column="2" Content="{Binding Texts[StopAllJobs]}" Command="{Binding StopAllJobsCommand}" />
+                                                        <Button Grid.Column="2" Content="{Binding Texts[StopAllJobs]}" Command="{Binding StopAllJobsCommand}" IsEnabled="{Binding CanStopAllJobs}" />
                                                     </Grid>
                                                 </StackPanel>
                                             </Border>
@@ -706,7 +762,7 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Texts[LogsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                                <TextBlock Text="{Binding Texts[LogsWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                                 <Border Width="20" Height="18" Background="#D4D0C8" BorderBrush="#003399" BorderThickness="1">
@@ -723,7 +779,7 @@
                                     </Border>
 
                                     <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
-                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
                                                 <TextBlock Text="{Binding Texts[LogsViewModeLabel]}" Classes="label" VerticalAlignment="Center" />
                                                 <Border Classes="xp-badge">
@@ -733,10 +789,10 @@
 
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                                                 <TextBlock Text="{Binding Texts[LogsCurrentFileLabel]}" Classes="label" VerticalAlignment="Center" />
-                                                <TextBlock Text="{Binding LogPreviewPath}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding LogPreviewPath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" MaxWidth="540" />
                                             </StackPanel>
 
-                                            <Button Grid.Column="3"
+                                            <Button Grid.Column="2"
                                                     Content="{Binding Texts[LogsRefreshButton]}"
                                                     Command="{Binding RefreshStatesCommand}"
                                                     Classes="xp-primary"
@@ -821,7 +877,7 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Texts[StateWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                                <TextBlock Text="{Binding Texts[StateWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </StackPanel>
                                             <Button Grid.Column="1"
                                                     Content="{Binding Texts[RefreshState]}"
@@ -835,15 +891,15 @@
                                     <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
                                         <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
                                             <Border Classes="xp-badge success">
-                                                <TextBlock Text="{Binding ActiveStatesCount, StringFormat='Actifs: {0}'}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding ActiveStatesCount, StringFormat='Actifs: {0}'}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </Border>
                                             <Border Grid.Column="1" Classes="xp-badge">
-                                                <TextBlock Text="{Binding FinishedStatesCount, StringFormat='Terminés: {0}'}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding FinishedStatesCount, StringFormat='Terminés: {0}'}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </Border>
                                             <Border Grid.Column="2" Classes="xp-badge warning">
-                                                <TextBlock Text="{Binding ErrorStatesCount, StringFormat='Erreurs: {0}'}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding ErrorStatesCount, StringFormat='Erreurs: {0}'}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </Border>
-                                            <TextBlock Grid.Column="3" Text="{Binding Texts[StatePageSubtitle]}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="3" Text="{Binding Texts[StatePageSubtitle]}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </Grid>
                                     </Border>
 
@@ -1196,7 +1252,7 @@
                                         <Grid ColumnDefinitions="*,Auto">
                                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                                 <TextBlock Text="i" Foreground="White" FontWeight="Bold" />
-                                                <TextBlock Text="{Binding Texts[AboutWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                                <TextBlock Text="{Binding Texts[AboutWindowTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
                                                 <Border Width="21" Height="21" Background="#2769E5" BorderBrush="#FFFFFF66" BorderThickness="1">
@@ -1216,8 +1272,8 @@
 
                                         <StackPanel Grid.Column="1" Spacing="12">
                                             <StackPanel Spacing="2">
-                                                <TextBlock Text="{Binding Texts[AboutProductValue]}" Foreground="#0043B0" FontWeight="Bold" FontSize="20" />
-                                                <TextBlock Text="{Binding Texts[AboutVersionBuildValue]}" Foreground="#1D5CB6" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[AboutProductValue]}" Foreground="#0043B0" FontWeight="Bold" FontSize="20" TextWrapping="Wrap" MaxLines="2" />
+                                                <TextBlock Text="{Binding Texts[AboutVersionBuildValue]}" Foreground="#1D5CB6" FontWeight="Bold" TextWrapping="Wrap" />
                                             </StackPanel>
 
                                             <Border Classes="xp-notepad" Padding="10">
@@ -1258,11 +1314,11 @@
         </Border>
 
         <Border Grid.Row="2" Classes="xp-statusbar" Margin="12,0,12,12">
-            <Grid ColumnDefinitions="1.6*,0.7*,0.7*,1.2*" ColumnSpacing="10">
-                <TextBlock Text="{Binding StatusMessage}" />
-                <TextBlock Grid.Column="1" Text="{Binding CurrentLanguageLabel}" />
-                <TextBlock Grid.Column="2" Text="{Binding CurrentLogFormatLabel}" />
-                <TextBlock Grid.Column="3" Text="{Binding BusinessSoftwareSummary}" TextWrapping="Wrap" />
+            <Grid ColumnDefinitions="1.9*,0.7*,0.7*,1.4*" ColumnSpacing="10">
+                <TextBlock Text="{Binding StatusMessage}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                <TextBlock Grid.Column="1" Text="{Binding CurrentLanguageLabel}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                <TextBlock Grid.Column="2" Text="{Binding CurrentLogFormatLabel}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                <TextBlock Grid.Column="3" Text="{Binding BusinessSoftwareSummary}" TextTrimming="CharacterEllipsis" MaxLines="1" />
             </Grid>
         </Border>
     </Grid>

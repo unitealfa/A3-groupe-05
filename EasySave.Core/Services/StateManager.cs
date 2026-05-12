@@ -39,8 +39,7 @@ public sealed class StateManager
                 states.Add(state);
             }
 
-            await using var stream = File.Create(stateFilePath);
-            await JsonSerializer.SerializeAsync(stream, states, JsonOptions, cancellationToken);
+            await WriteStatesAsync(states, cancellationToken);
         }
         finally
         {
@@ -79,8 +78,29 @@ public sealed class StateManager
             state.State = stateValue;
             state.LastActionTimestamp = DateTime.Now;
 
-            await using var stream = File.Create(stateFilePath);
-            await JsonSerializer.SerializeAsync(stream, states, JsonOptions, cancellationToken);
+            await WriteStatesAsync(states, cancellationToken);
+        }
+        finally
+        {
+            writeLock.Release();
+        }
+    }
+
+    public async Task RemoveStateAsync(string backupName, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupName);
+
+        await writeLock.WaitAsync(cancellationToken);
+        try
+        {
+            var states = await ReadStatesAsync(cancellationToken);
+            var removedCount = states.RemoveAll(existing => string.Equals(existing.Name, backupName, StringComparison.OrdinalIgnoreCase));
+            if (removedCount == 0)
+            {
+                return;
+            }
+
+            await WriteStatesAsync(states, cancellationToken);
         }
         finally
         {
@@ -95,7 +115,32 @@ public sealed class StateManager
             return [];
         }
 
-        await using var stream = File.OpenRead(stateFilePath);
+        await using var stream = new FileStream(
+            stateFilePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite,
+            bufferSize: 4096,
+            FileOptions.Asynchronous);
         return await JsonSerializer.DeserializeAsync<List<BackupState>>(stream, JsonOptions, cancellationToken) ?? [];
+    }
+
+    private async Task WriteStatesAsync(IReadOnlyList<BackupState> states, CancellationToken cancellationToken)
+    {
+        var directoryPath = Path.GetDirectoryName(stateFilePath)!;
+        var tempFilePath = Path.Combine(directoryPath, $"{Path.GetFileName(stateFilePath)}.{Guid.NewGuid():N}.tmp");
+
+        await using (var stream = new FileStream(
+                         tempFilePath,
+                         FileMode.CreateNew,
+                         FileAccess.Write,
+                         FileShare.None,
+                         bufferSize: 4096,
+                         FileOptions.Asynchronous))
+        {
+            await JsonSerializer.SerializeAsync(stream, states, JsonOptions, cancellationToken);
+        }
+
+        File.Move(tempFilePath, stateFilePath, overwrite: true);
     }
 }

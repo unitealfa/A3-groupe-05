@@ -12,7 +12,6 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="../EasySave.Core/EasySave.Core.csproj" />
     <ProjectReference Include="../CryptoSoft/CryptoSoft.csproj" ReferenceOutputAssembly="false" />
