@@ -252,7 +252,7 @@
 
                                     <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                            <Button Content="{Binding Texts[RunAllJobsToolbar]}" Command="{Binding RunAllJobsCommand}" />
+                                            <Button Content="{Binding Texts[RunAllJobsToolbar]}" Command="{Binding RunAllJobsCommand}" IsEnabled="{Binding CanRunAllJobs}" />
                                             <Border Grid.Column="2" Background="White" BorderBrush="#ACA899" BorderThickness="1" Padding="8,4">
                                                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
                                                     <TextBlock Text="⌕" Foreground="#7D7D7D" VerticalAlignment="Center" />
@@ -695,8 +695,8 @@
                                                 <StackPanel Spacing="8">
                                                     <TextBlock Text="{Binding Texts[ExecutionSelectedControlsTitle]}" Classes="panel-title" />
                                                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                                        <Button Content="{Binding Texts[PlayJob]}" Command="{Binding RunSelectedJobCommand}" Classes="xp-primary" />
-                                                        <Button Grid.Column="1" Content="{Binding Texts[PauseJob]}" Command="{Binding PauseSelectedJobCommand}" />
+                                                        <Button Content="{Binding Texts[PlayJob]}" Command="{Binding RunSelectedJobCommand}" IsEnabled="{Binding CanRunSelectedJob}" Classes="xp-primary" />
+                                                        <Button Grid.Column="1" Content="{Binding Texts[PauseJob]}" Command="{Binding PauseSelectedJobCommand}" IsEnabled="{Binding CanPauseSelectedJob}" />
                                                         <Button Grid.Column="2" Content="{Binding Texts[StopJob]}" Command="{Binding StopSelectedJobCommand}" IsEnabled="{Binding CanStopSelectedJob}" />
                                                     </Grid>
                                                 </StackPanel>
@@ -705,8 +705,8 @@
                                                 <StackPanel Spacing="8">
                                                     <TextBlock Text="{Binding Texts[ExecutionAllControlsTitle]}" Classes="panel-title" />
                                                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                                                        <Button Content="{Binding Texts[PlayAllJobs]}" Command="{Binding RunAllJobsCommand}" Classes="xp-primary" />
-                                                        <Button Grid.Column="1" Content="{Binding Texts[PauseAllJobs]}" Command="{Binding PauseAllJobsCommand}" />
+                                                        <Button Content="{Binding Texts[PlayAllJobs]}" Command="{Binding RunAllJobsCommand}" IsEnabled="{Binding CanRunAllJobs}" Classes="xp-primary" />
+                                                        <Button Grid.Column="1" Content="{Binding Texts[PauseAllJobs]}" Command="{Binding PauseAllJobsCommand}" IsEnabled="{Binding CanPauseAllJobs}" />
                                                         <Button Grid.Column="2" Content="{Binding Texts[StopAllJobs]}" Command="{Binding StopAllJobsCommand}" IsEnabled="{Binding CanStopAllJobs}" />
                                                     </Grid>
                                                 </StackPanel>

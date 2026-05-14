@@ -25,6 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IBusinessSoftwareDetector businessSoftwareDetector;
     private readonly CancellationTokenSource runtimeRefreshCancellationTokenSource = new();
     private readonly List<BackupJob> selectedJobs = [];
+    private Exception? startupException;
     private bool isRefreshingStates;
 
     [ObservableProperty]
@@ -134,7 +135,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        AppPaths.EnsureDirectories();
+        try
+        {
+            AppPaths.EnsureDirectories();
+        }
+        catch (Exception exception)
+        {
+            startupException = exception;
+        }
 
         settingsRepository = new AppSettingsRepository(AppPaths.SettingsFilePath);
         var repository = new BackupJobRepository(AppPaths.JobsFilePath);
@@ -474,7 +482,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool CanStopSelectedJob => GetSelectedJobsOrFallback().Any(CanStopJob);
 
-    public bool CanStopAllJobs => States.Any(state => IsStopEligibleState(state.State));
+    public bool CanStopAllJobs => Jobs.Any(CanStopJob);
+
+    public bool CanPauseSelectedJob => GetSelectedJobsOrFallback().Any(IsRunningJob);
+
+    public bool CanPauseAllJobs => Jobs.Any(IsRunningJob);
+
+    public bool CanRunSelectedJob => GetSelectedJobsOrFallback().Count > 0;
+
+    public bool CanRunAllJobs => Jobs.Count > 0;
 
     public string DeleteConfirmationText => string.Format(
         CultureInfo.InvariantCulture,
@@ -488,11 +504,22 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public async Task InitializeAsync()
     {
-        await LoadSettingsIntoViewModelAsync();
-        await RefreshJobsAsync();
-        await RefreshStatesAsync();
-        await RefreshLogPreviewAsync();
-        StatusMessage = Translate("StatusReady");
+        try
+        {
+            await LoadSettingsIntoViewModelAsync();
+            await RefreshJobsAsync();
+            await RefreshStatesAsync();
+            await RefreshLogPreviewAsync();
+            StatusMessage = startupException is null
+                ? Translate("StatusReady")
+                : TranslateUserFacingMessage(startupException);
+        }
+        catch (Exception exception)
+        {
+            await EnsureTranslationsForErrorAsync();
+            StatusMessage = TranslateUserFacingMessage(exception);
+        }
+
         _ = MonitorRuntimeStateAsync(runtimeRefreshCancellationTokenSource.Token);
     }
 
@@ -504,6 +531,11 @@ public partial class MainWindowViewModel : ViewModelBase
     public void SetTargetDirectory(string path)
     {
         TargetDirectory = path;
+    }
+
+    public void ReportError(Exception exception)
+    {
+        StatusMessage = TranslateUserFacingMessage(exception);
     }
 
     public void SetSelectedJobs(IEnumerable<BackupJob> jobs)
@@ -633,16 +665,23 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task RefreshJobsAsync()
     {
-        Jobs = new ObservableCollection<BackupJob>(await jobService.GetJobsAsync());
-        SyncSelectedJobsWithCurrentJobs();
+        try
+        {
+            Jobs = new ObservableCollection<BackupJob>(await jobService.GetJobsAsync());
+            SyncSelectedJobsWithCurrentJobs();
 
-        if (Jobs.Count == 0)
-        {
-            SelectedJob = null;
+            if (Jobs.Count == 0)
+            {
+                SelectedJob = null;
+            }
+            else if (SelectedJob is null || !Jobs.Any(job => string.Equals(job.Name, SelectedJob.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                SelectedJob = Jobs[0];
+            }
         }
-        else if (SelectedJob is null || !Jobs.Any(job => string.Equals(job.Name, SelectedJob.Name, StringComparison.OrdinalIgnoreCase)))
+        catch (Exception exception)
         {
-            SelectedJob = Jobs[0];
+            StatusMessage = TranslateUserFacingMessage(exception);
         }
 
         OnPropertyChanged(nameof(TotalJobsCount));
@@ -650,6 +689,12 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(DashboardQuickStatsText));
         OnPropertyChanged(nameof(JobsStorageUsagePercent));
         OnPropertyChanged(nameof(JobsStorageUsageText));
+        OnPropertyChanged(nameof(CanRunSelectedJob));
+        OnPropertyChanged(nameof(CanRunAllJobs));
+        OnPropertyChanged(nameof(CanPauseSelectedJob));
+        OnPropertyChanged(nameof(CanPauseAllJobs));
+        OnPropertyChanged(nameof(CanStopSelectedJob));
+        OnPropertyChanged(nameof(CanStopAllJobs));
         NotifySelectionProperties();
         RebuildDashboardRows();
         RebuildJobListRows();
@@ -678,14 +723,41 @@ public partial class MainWindowViewModel : ViewModelBase
             OnPropertyChanged(nameof(JobsServiceStatusText));
             OnPropertyChanged(nameof(JobsStorageUsagePercent));
             OnPropertyChanged(nameof(JobsStorageUsageText));
+            OnPropertyChanged(nameof(CanRunSelectedJob));
+            OnPropertyChanged(nameof(CanRunAllJobs));
+            OnPropertyChanged(nameof(CanPauseSelectedJob));
+            OnPropertyChanged(nameof(CanPauseAllJobs));
+            OnPropertyChanged(nameof(CanStopSelectedJob));
+            OnPropertyChanged(nameof(CanStopAllJobs));
             NotifySelectionProperties();
             RebuildDashboardRows();
             RebuildJobListRows();
             await RefreshLogPreviewAsync();
         }
+        catch (Exception exception)
+        {
+            StatusMessage = TranslateUserFacingMessage(exception);
+        }
         finally
         {
             isRefreshingStates = false;
+        }
+    }
+
+    private async Task EnsureTranslationsForErrorAsync()
+    {
+        if (Texts.Count > 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await LoadTranslationsAsync(SelectedLanguage);
+        }
+        catch
+        {
+            Texts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 
@@ -705,6 +777,14 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         await RunBusyAsync(async () =>
         {
+            if (IsEditingJob && backupManager.IsJobRunning(EditingOriginalJobName))
+            {
+                throw new InvalidOperationException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Translate("CannotEditRunningJob"),
+                    EditingOriginalJobName));
+            }
+
             var job = new BackupJob
             {
                 Name = JobName.Trim(),
@@ -732,120 +812,168 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task RunSelectedJobAsync()
     {
-        var jobsToRun = GetSelectedJobsOrFallback();
-        if (jobsToRun.Count == 0)
+        await RunBusyAsync(async () =>
         {
-            StatusMessage = Translate("SelectJobFirst");
-            return;
-        }
-
-        await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
-        var stoppedOrInactiveJobIndexes = new List<int>();
-        var resumedAny = false;
-
-        foreach (var job in jobsToRun)
-        {
-            if (backupManager.IsJobRunning(job.Name))
+            var jobsToRun = GetSelectedJobsOrFallback();
+            if (jobsToRun.Count == 0)
             {
-                resumedAny |= await backupManager.ResumeJobAsync(job.Name);
+                StatusMessage = Translate("SelectJobFirst");
+                return;
             }
-            else
+
+            await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
+            var stoppedOrInactiveJobIndexes = new List<int>();
+            var resumedAny = false;
+
+            foreach (var job in jobsToRun)
             {
-                var jobIndex = Jobs.IndexOf(job);
-                if (jobIndex >= 0)
+                if (backupManager.IsJobRunning(job.Name))
                 {
-                    stoppedOrInactiveJobIndexes.Add(jobIndex + 1);
+                    resumedAny |= await backupManager.ResumeJobAsync(job.Name);
+                }
+                else
+                {
+                    var jobIndex = Jobs.IndexOf(job);
+                    if (jobIndex >= 0)
+                    {
+                        stoppedOrInactiveJobIndexes.Add(jobIndex + 1);
+                    }
                 }
             }
-        }
 
-        if (stoppedOrInactiveJobIndexes.Count > 0)
-        {
-            await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
-        }
+            if (stoppedOrInactiveJobIndexes.Count > 0)
+            {
+                await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
+            }
 
-        StatusMessage = resumedAny && stoppedOrInactiveJobIndexes.Count == 0
-            ? Translate("ExecutionResumed")
-            : Translate("ExecutionStarted");
-        await RefreshStatesAsync();
+            StatusMessage = resumedAny && stoppedOrInactiveJobIndexes.Count == 0
+                ? Translate("ExecutionResumed")
+                : Translate("ExecutionStarted");
+            await RefreshStatesAsync();
+        });
     }
 
     private async Task RunAllJobsAsync()
     {
-        await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
-
-        var stoppedOrInactiveJobIndexes = Jobs
-            .Select((job, index) => new { job, index })
-            .Where(item => !backupManager.IsJobRunning(item.job.Name))
-            .Select(item => item.index + 1)
-            .ToList();
-
-        await backupManager.ResumeAllJobsAsync();
-        if (stoppedOrInactiveJobIndexes.Count > 0)
+        await RunBusyAsync(async () =>
         {
-            await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
-        }
+            if (Jobs.Count == 0)
+            {
+                StatusMessage = Translate("NoJobsToRun");
+                return;
+            }
 
-        StatusMessage = Translate("ExecutionStarted");
-        await RefreshStatesAsync();
+            await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
+
+            var stoppedOrInactiveJobIndexes = Jobs
+                .Select((job, index) => new { job, index })
+                .Where(item => !backupManager.IsJobRunning(item.job.Name))
+                .Select(item => item.index + 1)
+                .ToList();
+
+            await backupManager.ResumeAllJobsAsync();
+            if (stoppedOrInactiveJobIndexes.Count > 0)
+            {
+                await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
+            }
+
+            StatusMessage = Translate("ExecutionStarted");
+            await RefreshStatesAsync();
+        });
     }
 
     private async Task PauseSelectedJobAsync()
     {
-        var jobsToPause = GetSelectedJobsOrFallback();
-        if (jobsToPause.Count == 0)
+        await RunBusyAsync(async () =>
         {
-            StatusMessage = Translate("SelectJobFirst");
-            return;
-        }
+            var jobsToPause = GetSelectedJobsOrFallback();
+            if (jobsToPause.Count == 0)
+            {
+                StatusMessage = Translate("SelectJobFirst");
+                return;
+            }
 
-        var pausedAny = false;
-        foreach (var job in jobsToPause)
-        {
-            pausedAny |= await backupManager.PauseJobAsync(job.Name);
-        }
+            if (!jobsToPause.Any(IsRunningJob))
+            {
+                StatusMessage = Translate("NoRunningJobToPause");
+                return;
+            }
 
-        if (pausedAny)
-        {
-            StatusMessage = Translate("ExecutionPaused");
-            await RefreshStatesAsync();
-        }
+            var pausedAny = false;
+            foreach (var job in jobsToPause)
+            {
+                pausedAny |= await backupManager.PauseJobAsync(job.Name);
+            }
+
+            if (pausedAny)
+            {
+                StatusMessage = Translate("ExecutionPaused");
+                await RefreshStatesAsync();
+            }
+        });
     }
 
     private async Task PauseAllJobsAsync()
     {
-        await backupManager.PauseAllJobsAsync();
-        StatusMessage = Translate("ExecutionPaused");
-        await RefreshStatesAsync();
+        await RunBusyAsync(async () =>
+        {
+            if (!Jobs.Any(IsRunningJob))
+            {
+                StatusMessage = Translate("NoRunningJobToPause");
+                return;
+            }
+
+            await backupManager.PauseAllJobsAsync();
+            StatusMessage = Translate("ExecutionPaused");
+            await RefreshStatesAsync();
+        });
     }
 
     private async Task StopSelectedJobAsync()
     {
-        var jobsToStop = GetSelectedJobsOrFallback();
-        if (jobsToStop.Count == 0)
+        await RunBusyAsync(async () =>
         {
-            StatusMessage = Translate("SelectJobFirst");
-            return;
-        }
+            var jobsToStop = GetSelectedJobsOrFallback();
+            if (jobsToStop.Count == 0)
+            {
+                StatusMessage = Translate("SelectJobFirst");
+                return;
+            }
 
-        var stoppedAny = false;
-        foreach (var job in jobsToStop)
-        {
-            stoppedAny |= await backupManager.StopJobAsync(job.Name);
-        }
+            if (!jobsToStop.Any(IsRunningJob))
+            {
+                StatusMessage = Translate("NoRunningJobToStop");
+                return;
+            }
 
-        if (stoppedAny)
-        {
-            StatusMessage = Translate("ExecutionStopped");
-            await RefreshStatesAsync();
-        }
+            var stoppedAny = false;
+            foreach (var job in jobsToStop)
+            {
+                stoppedAny |= await backupManager.StopJobAsync(job.Name);
+            }
+
+            if (stoppedAny)
+            {
+                StatusMessage = Translate("ExecutionStopped");
+                await RefreshStatesAsync();
+            }
+        });
     }
 
     private async Task StopAllJobsAsync()
     {
-        await backupManager.StopAllJobsAsync();
-        StatusMessage = Translate("ExecutionStopped");
-        await RefreshStatesAsync();
+        await RunBusyAsync(async () =>
+        {
+            if (!Jobs.Any(IsRunningJob))
+            {
+                StatusMessage = Translate("NoRunningJobToStop");
+                return;
+            }
+
+            await backupManager.StopAllJobsAsync();
+            StatusMessage = Translate("ExecutionStopped");
+            await RefreshStatesAsync();
+        });
     }
 
     private async Task RunDashboardJobAsync(BackupJob? job)
@@ -879,6 +1007,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (IsRunningJob(job))
+        {
+            StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("CannotDeleteRunningJob"), job.Name);
+            return;
+        }
+
         PendingDeleteJob = job;
         PendingDeleteJobName = job.Name;
         IsDeleteConfirmationVisible = true;
@@ -895,9 +1029,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
         await RunBusyAsync(async () =>
         {
-            if (backupManager.IsJobRunning(job.Name))
+            if (IsRunningJob(job))
             {
-                await backupManager.StopJobAsync(job.Name);
+                StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("CannotDeleteRunningJob"), job.Name);
+                CancelDeleteJob();
+                return;
             }
 
             await jobService.DeleteJobAsync(job.Name);
@@ -994,7 +1130,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception exception)
         {
-            LogPreviewText = exception.Message;
+            LogPreviewText = TranslateUserFacingMessage(exception);
             LogPreviewInfo = Translate("LogsPreviewError");
         }
     }
@@ -1019,6 +1155,10 @@ public partial class MainWindowViewModel : ViewModelBase
         var settings = BuildSettingsFromViewModel();
 
         settings.LargeFileThresholdKo = ParseValidatedLargeFileThresholdKo(LargeFileThresholdKoText);
+        ValidateExtensionList(settings.EncryptedExtensions, "InvalidEncryptedExtensions");
+        ValidateExtensionList(settings.PriorityExtensions, "InvalidPriorityExtensions");
+        ValidateBusinessSoftwareProcesses(settings.BusinessSoftwareProcesses);
+
         if (string.IsNullOrWhiteSpace(settings.CryptoSoftPath))
         {
             throw new InvalidOperationException(Translate("CryptoSoftPathRequired"));
@@ -1067,6 +1207,75 @@ public partial class MainWindowViewModel : ViewModelBase
         return thresholdKo;
     }
 
+    private void ValidateExtensionList(IEnumerable<string> extensions, string translationKey)
+    {
+        foreach (var extension in extensions)
+        {
+            if (!IsValidExtensionToken(extension))
+            {
+                throw new InvalidOperationException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Translate(translationKey),
+                    extension));
+            }
+        }
+    }
+
+    private void ValidateBusinessSoftwareProcesses(IEnumerable<string> processes)
+    {
+        foreach (var process in processes)
+        {
+            if (!IsValidBusinessSoftwareProcess(process))
+            {
+                throw new InvalidOperationException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    Translate("InvalidBusinessSoftwareProcess"),
+                    process));
+            }
+        }
+    }
+
+    private static bool IsValidExtensionToken(string value)
+    {
+        var extension = value.Trim();
+        if (extension is "*" or "*.*" or ".*")
+        {
+            return true;
+        }
+
+        if (extension.Length == 0 || extension == "." || extension.Contains('*') || extension.Contains('?'))
+        {
+            return false;
+        }
+
+        if (extension.Contains(Path.DirectorySeparatorChar) || extension.Contains(Path.AltDirectorySeparatorChar))
+        {
+            return false;
+        }
+
+        var extensionName = extension.StartsWith('.') ? extension[1..] : extension;
+        return extensionName.Length > 0 &&
+               extensionName.All(character => char.IsLetterOrDigit(character) || character is '_' or '-');
+    }
+
+    private static bool IsValidBusinessSoftwareProcess(string value)
+    {
+        var processName = value.Trim();
+        if (processName.Length == 0 || processName.Contains('*') || processName.Contains('?'))
+        {
+            return false;
+        }
+
+        if (processName.Any(char.IsWhiteSpace) ||
+            processName.Contains(Path.DirectorySeparatorChar) ||
+            processName.Contains(Path.AltDirectorySeparatorChar))
+        {
+            return false;
+        }
+
+        return processName.All(character => char.IsLetterOrDigit(character) || character is '_' or '-' or '.');
+    }
+
     private static List<string> SplitList(string rawValue)
     {
         return rawValue
@@ -1096,6 +1305,12 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (job is null)
         {
+            return;
+        }
+
+        if (IsRunningJob(job))
+        {
+            StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("CannotEditRunningJob"), job.Name);
             return;
         }
 
@@ -1264,6 +1479,10 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        OnPropertyChanged(nameof(CanRunSelectedJob));
+        OnPropertyChanged(nameof(CanRunAllJobs));
+        OnPropertyChanged(nameof(CanPauseSelectedJob));
+        OnPropertyChanged(nameof(CanPauseAllJobs));
         OnPropertyChanged(nameof(CanStopSelectedJob));
         OnPropertyChanged(nameof(CanStopAllJobs));
         OnPropertyChanged(nameof(DeleteConfirmationText));
@@ -1293,6 +1512,12 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        OnPropertyChanged(nameof(CanRunSelectedJob));
+        OnPropertyChanged(nameof(CanRunAllJobs));
+        OnPropertyChanged(nameof(CanPauseSelectedJob));
+        OnPropertyChanged(nameof(CanPauseAllJobs));
+        OnPropertyChanged(nameof(CanStopSelectedJob));
+        OnPropertyChanged(nameof(CanStopAllJobs));
         RebuildDashboardRows();
         RebuildJobListRows();
         NotifySelectionProperties();
@@ -1333,6 +1558,9 @@ public partial class MainWindowViewModel : ViewModelBase
         selectedJobs.Clear();
         selectedJobs.AddRange(currentSelections);
         OnPropertyChanged(nameof(JobsSelectedCountText));
+        OnPropertyChanged(nameof(CanRunSelectedJob));
+        OnPropertyChanged(nameof(CanPauseSelectedJob));
+        OnPropertyChanged(nameof(CanStopSelectedJob));
     }
 
     private static string BuildPreview(string content)
@@ -1471,27 +1699,42 @@ public partial class MainWindowViewModel : ViewModelBase
             ArgumentException when exception.Message == "The source directory is required." => Translate("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => Translate("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => Translate("BackupTypeInvalid"),
+            InvalidOperationException when exception.Message.StartsWith("Backup job not found:", StringComparison.Ordinal) => Translate("BackupJobNotFound"),
             InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => Translate("BackupNameAlreadyExists"),
             InvalidOperationException when exception.Message.StartsWith("The backup target directory cannot", StringComparison.Ordinal) => Translate("SourceTargetOverlap"),
             InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => Translate("TargetDirectoryCreationFailed"),
-            _ => exception.Message
+            InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be read:", StringComparison.Ordinal) => Translate("JobsFileReadFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be saved:", StringComparison.Ordinal) => Translate("JobsFileSaveFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Settings file could not be read:", StringComparison.Ordinal) => Translate("SettingsFileReadFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Settings file could not be saved:", StringComparison.Ordinal) => Translate("SettingsFileSaveFailed"),
+            InvalidOperationException when exception.Message.StartsWith("State file could not be read:", StringComparison.Ordinal) => Translate("StateFileReadFailed"),
+            InvalidOperationException when exception.Message.StartsWith("State file could not be saved:", StringComparison.Ordinal) => Translate("StateFileSaveFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Application directories could not be created:", StringComparison.Ordinal) => Translate("ApplicationDirectoriesCreateFailed"),
+            _ => FormatUnexpectedError(exception)
         };
     }
 
+    private string FormatUnexpectedError(Exception exception)
+    {
+        var template = Translate("UnexpectedError");
+        return string.Equals(template, "UnexpectedError", StringComparison.Ordinal)
+            ? exception.Message
+            : string.Format(CultureInfo.InvariantCulture, template, exception.Message);
+    }
+
     private bool CanStopJob(BackupJob? job)
+    {
+        return IsRunningJob(job);
+    }
+
+    private bool IsRunningJob(BackupJob? job)
     {
         if (job is null)
         {
             return false;
         }
 
-        var state = States.FirstOrDefault(existing => string.Equals(existing.Name, job.Name, StringComparison.OrdinalIgnoreCase));
-        return IsStopEligibleState(state?.State);
-    }
-
-    private static bool IsStopEligibleState(string? state)
-    {
-        return string.Equals(state, "Active", StringComparison.OrdinalIgnoreCase);
+        return backupManager.IsJobRunning(job.Name);
     }
 }
 

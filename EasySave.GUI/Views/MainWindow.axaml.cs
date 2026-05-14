@@ -21,18 +21,39 @@ public partial class MainWindow : Window
 
         if (DataContext is MainWindowViewModel viewModel)
         {
-            await viewModel.InitializeAsync();
+            try
+            {
+                await viewModel.InitializeAsync();
+            }
+            catch (Exception exception)
+            {
+                viewModel.ReportError(exception);
+            }
         }
     }
 
     private async void SourceBrowse_Click(object? sender, RoutedEventArgs e)
     {
-        await PickSourceAsync();
+        try
+        {
+            await PickSourceAsync();
+        }
+        catch (Exception exception)
+        {
+            ViewModel?.ReportError(exception);
+        }
     }
 
     private async void TargetBrowse_Click(object? sender, RoutedEventArgs e)
     {
-        await PickFolderAsync(path => ViewModel?.SetTargetDirectory(path));
+        try
+        {
+            await PickFolderAsync(path => ViewModel?.SetTargetDirectory(path));
+        }
+        catch (Exception exception)
+        {
+            ViewModel?.ReportError(exception);
+        }
     }
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;

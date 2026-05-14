@@ -66,7 +66,7 @@ public partial class SourceSelectionWindow : Window
 
             EntriesListBox.SelectedItems?.Clear();
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
         {
             SelectionHintTextBlock.Text = string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,

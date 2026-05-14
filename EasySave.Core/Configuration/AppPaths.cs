@@ -18,8 +18,15 @@ public static class AppPaths
 
     public static void EnsureDirectories()
     {
-        Directory.CreateDirectory(ConfigDirectory);
-        Directory.CreateDirectory(LogsDirectory);
-        Directory.CreateDirectory(StateDirectory);
+        try
+        {
+            Directory.CreateDirectory(ConfigDirectory);
+            Directory.CreateDirectory(LogsDirectory);
+            Directory.CreateDirectory(StateDirectory);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            throw new InvalidOperationException($"Application directories could not be created: {BaseDirectory}", exception);
+        }
     }
 }

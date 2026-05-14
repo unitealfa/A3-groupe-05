@@ -235,10 +235,57 @@ public sealed class BackupManager
         catch (OperationCanceledException) when (session.CancellationTokenSource.IsCancellationRequested)
         {
         }
+        catch (Exception exception)
+        {
+            await MarkExecutionAsFailedAsync(job, settings, exception);
+        }
         finally
         {
             linkedTokenSource.Dispose();
             RemoveSession(job.Name, session);
+        }
+    }
+
+    private async Task MarkExecutionAsFailedAsync(BackupJob job, AppSettings settings, Exception exception)
+    {
+        try
+        {
+            await stateManager.UpdateAsync(new BackupState
+            {
+                Name = job.Name,
+                State = "Error",
+                CurrentSourceFilePath = job.SourceDirectory,
+                CurrentDestinationFilePath = job.TargetDirectory,
+                TotalFilesToCopy = 0,
+                TotalFilesSize = 0,
+                RemainingFiles = 0,
+                RemainingSize = 0,
+                Progression = 0
+            });
+        }
+        catch
+        {
+            // Preserve the original execution failure; state persistence errors are reported elsewhere.
+        }
+
+        try
+        {
+            await loggerFactory(settings).LogAsync(new LogEntry
+            {
+                Timestamp = DateTime.Now,
+                BackupName = job.Name,
+                SourceFilePath = job.SourceDirectory,
+                DestinationFilePath = job.TargetDirectory,
+                FileSize = 0,
+                TransferTimeMs = -1,
+                EncryptionTimeMs = -1,
+                Status = "Error",
+                ErrorMessage = exception.Message
+            });
+        }
+        catch
+        {
+            // A failed log write must not crash the UI or leave an unobserved task exception.
         }
     }
 

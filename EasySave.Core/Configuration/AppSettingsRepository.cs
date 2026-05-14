@@ -16,7 +16,6 @@ public sealed class AppSettingsRepository
     public AppSettingsRepository(string settingsFilePath)
     {
         this.settingsFilePath = settingsFilePath;
-        Directory.CreateDirectory(Path.GetDirectoryName(settingsFilePath)!);
     }
 
     public async Task<AppSettings> LoadAsync(CancellationToken cancellationToken = default)
@@ -43,6 +42,10 @@ public sealed class AppSettingsRepository
             await using var stream = File.Create(settingsFilePath);
             await JsonSerializer.SerializeAsync(stream, Normalize(settings), JsonOptions, cancellationToken);
         }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            throw new InvalidOperationException($"Settings file could not be saved: {settingsFilePath}", exception);
+        }
         finally
         {
             writeLock.Release();
@@ -51,14 +54,21 @@ public sealed class AppSettingsRepository
 
     private async Task<AppSettings> ReadSettingsUnsafeAsync(CancellationToken cancellationToken)
     {
-        if (!File.Exists(settingsFilePath))
+        try
         {
-            return new AppSettings();
-        }
+            if (!File.Exists(settingsFilePath))
+            {
+                return new AppSettings();
+            }
 
-        await using var stream = File.OpenRead(settingsFilePath);
-        var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions, cancellationToken);
-        return Normalize(settings ?? new AppSettings());
+            await using var stream = File.OpenRead(settingsFilePath);
+            var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, JsonOptions, cancellationToken);
+            return Normalize(settings ?? new AppSettings());
+        }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        {
+            throw new InvalidOperationException($"Settings file could not be read: {settingsFilePath}", exception);
+        }
     }
 
     private static AppSettings Normalize(AppSettings settings)
