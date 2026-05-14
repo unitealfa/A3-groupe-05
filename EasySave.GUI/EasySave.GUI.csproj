@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <Target Name="CopyCryptoSoftToOutput" AfterTargets="Build">
+    <Delete Files="$(OutDir)CryptoSoft" />
     <MakeDir Directories="$(OutDir)CryptoSoft" />
     <ItemGroup>
       <CryptoSoftOutput Include="..\CryptoSoft\bin\$(Configuration)\net8.0\**\*" />
@@ -43,6 +44,7 @@
   </Target>
 
   <Target Name="CopyCryptoSoftToPublish" AfterTargets="Publish">
+    <Delete Files="$(PublishDir)CryptoSoft" />
     <MakeDir Directories="$(PublishDir)CryptoSoft" />
     <ItemGroup>
       <CryptoSoftPublish Include="..\CryptoSoft\bin\$(Configuration)\net8.0\**\*" />

@@ -7,6 +7,7 @@ namespace EasySave.Core.Services;
 public sealed class CryptoSoftEncryptionService : IFileEncryptionService
 {
     private const int CryptoSoftBusyExitCode = -20;
+    private const int CryptoSoftBusyWrappedExitCode = 256 + CryptoSoftBusyExitCode;
     private static readonly TimeSpan BusyRetryDelay = TimeSpan.FromMilliseconds(150);
     private static readonly TimeSpan BusyRetryTimeout = TimeSpan.FromSeconds(30);
     private static readonly Regex ElapsedTimeRegex = new(@"ElapsedTimeMs=(?<value>-?\d+)", RegexOptions.Compiled);
@@ -82,7 +83,7 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
             return parsed.Value;
         }
 
-        if (process.ExitCode == CryptoSoftBusyExitCode)
+        if (process.ExitCode == CryptoSoftBusyExitCode || process.ExitCode == CryptoSoftBusyWrappedExitCode)
         {
             return CryptoSoftBusyExitCode;
         }

@@ -69,7 +69,7 @@ public sealed class CryptoSoftIntegrationTests : IDisposable
             var secondOutput = await secondOutputTask;
 
             Assert.True(firstProcess.ExitCode >= 0, $"Expected first CryptoSoft run to succeed but got {firstProcess.ExitCode}. Output: {firstOutput}");
-            Assert.Equal(-20, secondProcess.ExitCode);
+            Assert.Equal(-20, NormalizeExitCode(secondProcess.ExitCode));
             Assert.Contains("already running", secondOutput, StringComparison.OrdinalIgnoreCase);
         }
         finally
@@ -150,5 +150,10 @@ public sealed class CryptoSoftIntegrationTests : IDisposable
             UseShellExecute = false,
             CreateNoWindow = true
         };
+    }
+
+    private static int NormalizeExitCode(int exitCode)
+    {
+        return exitCode > 127 ? exitCode - 256 : exitCode;
     }
 }
