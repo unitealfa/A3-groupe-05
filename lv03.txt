@@ -1,0 +1,190 @@
+Livrable 3
+Sujet
+EasySave 3.0
+Les évolutions demandées pour cette nouvelle version EasySave 3.0 sont :
+
+Sauvegarde en parallèle
+
+Les travaux de sauvegarde se feront en parallèle (abandon du mode séquentiel ).
+
+Gestion des fichiers prioritaires
+
+Aucune sauvegarde d'un fichier non prioritaire ne peut se faire tant qu'il y a des extensions prioritaires en attente sur au moins un travail. Les extensions sont déclarées par l'utilisateur dans une liste prédéfinie (présente dans les paramètres généraux).
+
+Interdiction de transférer en parallèle des fichiers de plus n Ko
+
+Pour ne pas saturer la bande passante, il est interdit de transférer en même temps deux fichiers dont la taille est supérieure à n Ko. (n Ko paramétrable)
+
+Rem : pendant le transfert d'un fichier de plus de n Ko, les autres travaux peuvent transférer des fichiers dont les tailles sont inférieures (sous réserve du respect de la règle des fichiers prioritaires)
+
+Interaction temps réel avec chaque travail ou l'ensemble des travauxPour chaque travail de sauvegarde (ou l'ensemble des travaux), l'utilisateur doit pouvoir Mettre sur pause (pause effective après le transfert du fichier en cours)Mettre sur Play (démarrage ou reprise d'une pause)Mettre sur Stop (arrêt immédiat du travail et de la tache en cours) L'utilisateur doit pouvoir suivre en temps réel l'état d'avancement de chaque travail (au minimum avec un pourcentage de progression).
+
+Pause temporaire si détection du fonctionnement d'un logiciel métier
+
+Si le logiciel détecte le fonctionnement d'un logiciel métier, il doit obligatoirement mettre en pause les travaux de sauvegardes. Celles-ci redémarrent automatiquement dès que le logiciel métier est arrêté.
+
+Exemple : si l'application calculatrice est lancée, toutes les travaux doivent se mettre en pause.
+
+CryptoSoft est Mono-instance.
+
+Le logiciel CryptoSoft est Mono-instance (il ne peut être exécuté en simultanée sur un même ordinateur)
+
+Vous devez modifier CryptoSoft pour le rendre Mono-Instance et gérer les éventuels problèmes liés à cette restriction
+
+Centralisation des fichiers log Journalier
+
+Le logiciel pouvant être déployé sur plusieurs serveurs de l’entreprise, il vous est demandé de développer sous Docker un service de centralisation des logs en temps réel afin de simplifier leurs gestions
+
+Si le client utilise cette fonctionnalité, il pourra au choix :
+
+-            Avoir les fichiers log uniquement sur le serveur Docker (centralisé)
+
+-            Avoir les fichiers log uniquement sur le PC de chaque utilisateur du logiciel (local)
+
+-            Avoir les fichiers log uniquement sur le PC de chaque utilisateur du   logiciel (local) et sur le serveur Docker (centralisé)
+
+ 
+
+Pour permettre de centraliser les logs sur le serveur Docker, il est nécessaire de garder un seul et unique fichier journalier quel que soit le nombre d’utilisateurs. (Indépendamment du nombre de machines et de permettre de différentier l’utilisateur)
+
+Fonction 
+
+Version 1.0
+
+Version 1.1
+
+Version 2.0
+
+Version 3.0
+
+Interface
+
+Console
+
+Console
+
+Graphique
+
+Graphique
+
+Multi-langues
+
+Anglais et Français
+
+Anglais et Français
+
+Anglais et Français
+
+Anglais et Français
+
+Travaux de sauvegarde
+
+Limité à 5
+
+Limité à 5
+
+Illimité
+
+Fichier Log journalier
+
+Oui en JSON uniquement
+
+Oui ( JSON , XML)
+
+Oui ( JSON , XML)
+
+(Information supplémentaire sur le temps de cryptage)
+
+Oui ( JSON , XML)
+
+L'utilisateur peut mettre en pause une ou
+
+Plusieurs taches
+
+Non
+
+Non
+
+Non
+
+Oui
+
+Fichier Etat
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Type de fonctionnement Sauvegarde  
+
+Mono ou séquentielle
+
+Mono ou séquentielle
+
+Mono ou Séquentielle
+
+Parallèle 
+
+Arrêt si détection du logiciel métier
+
+Non
+
+Non
+
+Oui (impossible de lancer un travail)
+
+Oui (arrêt de tous les transferts en cours)
+
+Utilisation du logiciel de cryptage externe «CryptoSoft »  
+
+Non
+
+Non
+
+Oui
+
+Oui ( logiciel Mono-Instance)
+
+Gestion de fichiers Prioritaires
+
+Non
+
+Non
+
+Non
+
+OUI, avec attente des autres taches
+
+Interdiction de sauvegardes Simultanées pour les fichiers volumineux 
+
+Non
+
+Non
+
+Non
+
+OUI
+
+Centralisation des fichiers log Journalier
+
+Non
+
+Non
+
+Non
+
+Oui
+
+Ligne de commande
+
+Oui
+
+identique version 1.0
+
+identique version 1.0
+
+identique version 1.0

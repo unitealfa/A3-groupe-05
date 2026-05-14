@@ -326,6 +326,7 @@ public sealed class ConsoleMenu
         {
             ArgumentOutOfRangeException => languageSelector.Text("BackupJobIndexOutOfRange"),
             DirectoryNotFoundException when exception.Message.StartsWith("Source directory does not exist:", StringComparison.Ordinal) => languageSelector.Text("SourceDirectoryDoesNotExist"),
+            DirectoryNotFoundException when exception.Message.StartsWith("Source path does not exist:", StringComparison.Ordinal) => languageSelector.Text("SourceDirectoryDoesNotExist"),
             ArgumentException when exception.Message == "The backup name is required." => languageSelector.Text("BackupNameRequired"),
             ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),

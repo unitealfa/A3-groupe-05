@@ -35,9 +35,21 @@ public class FileManager(string path, string key)
         var fileBytes = File.ReadAllBytes(FilePath);
         var keyBytes = ConvertToByte(Key);
         fileBytes = XorMethod(fileBytes, keyBytes);
+        ApplyOptionalProcessingDelay();
         File.WriteAllBytes(FilePath, fileBytes);
         stopwatch.Stop();
         return (int)stopwatch.ElapsedMilliseconds;
+    }
+
+    private static void ApplyOptionalProcessingDelay()
+    {
+        var rawDelay = Environment.GetEnvironmentVariable("CRYPTOSOFT_DELAY_MS");
+        if (!int.TryParse(rawDelay, out var delayMs) || delayMs <= 0)
+        {
+            return;
+        }
+
+        Thread.Sleep(delayMs);
     }
 
     /// <summary>
