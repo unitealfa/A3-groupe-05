@@ -34,10 +34,24 @@ public sealed class LanguageSelector
 
     public async Task SelectLanguageAsync()
     {
-        System.Console.WriteLine($"1 - {Text("LanguageFrench")}");
-        System.Console.WriteLine($"2 - {Text("LanguageEnglish")}");
-        System.Console.Write("> ");
-        var choice = System.Console.ReadLine();
+        string? choice;
+        do
+        {
+            System.Console.WriteLine($"1 - {Text("LanguageFrench")}");
+            System.Console.WriteLine($"2 - {Text("LanguageEnglish")}");
+            System.Console.Write("> ");
+            choice = System.Console.ReadLine();
+            if (choice is null)
+            {
+                choice = "2";
+            }
+
+            if (choice is not "1" and not "2")
+            {
+                System.Console.WriteLine(Text("InvalidChoice"));
+            }
+        }
+        while (choice is not "1" and not "2");
 
         CurrentLanguage = choice == "1" ? "fr" : "en";
         await SaveSettingsAsync();
@@ -46,10 +60,24 @@ public sealed class LanguageSelector
 
     public async Task SelectLogFormatAsync()
     {
-        System.Console.WriteLine($"1 - {Text("LogFormatJson")}");
-        System.Console.WriteLine($"2 - {Text("LogFormatXml")}");
-        System.Console.Write($"{Text("LogFormatPrompt")} ");
-        var choice = System.Console.ReadLine();
+        string? choice;
+        do
+        {
+            System.Console.WriteLine($"1 - {Text("LogFormatJson")}");
+            System.Console.WriteLine($"2 - {Text("LogFormatXml")}");
+            System.Console.Write($"{Text("LogFormatPrompt")} ");
+            choice = System.Console.ReadLine();
+            if (choice is null)
+            {
+                choice = "1";
+            }
+
+            if (choice is not "1" and not "2")
+            {
+                System.Console.WriteLine(Text("InvalidChoice"));
+            }
+        }
+        while (choice is not "1" and not "2");
 
         CurrentLogFormat = choice == "2" ? LogFormat.Xml : LogFormat.Json;
         await SaveSettingsAsync();
@@ -62,16 +90,23 @@ public sealed class LanguageSelector
 
     private async Task LoadTranslationsAsync(string language)
     {
-        var resourcePath = Path.Combine(AppContext.BaseDirectory, "Resources", $"{language}.json");
-        if (!File.Exists(resourcePath))
+        try
+        {
+            var resourcePath = Path.Combine(AppContext.BaseDirectory, "Resources", $"{language}.json");
+            if (!File.Exists(resourcePath))
+            {
+                translations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                return;
+            }
+
+            await using var stream = File.OpenRead(resourcePath);
+            translations = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(stream, JsonOptions)
+                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+        catch
         {
             translations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            return;
         }
-
-        await using var stream = File.OpenRead(resourcePath);
-        translations = await JsonSerializer.DeserializeAsync<Dictionary<string, string>>(stream, JsonOptions)
-            ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 
     private async Task<AppSettings> LoadSettingsAsync()

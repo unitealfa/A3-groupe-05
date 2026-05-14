@@ -28,7 +28,7 @@ public sealed class ConsoleMenu
             {
                 shouldContinue = await HandleChoiceAsync(choice, cancellationToken);
             }
-            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or DirectoryNotFoundException)
+            catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 System.Console.WriteLine(TranslateExceptionMessage(exception));
             }
@@ -49,6 +49,11 @@ public sealed class ConsoleMenu
 
     private async Task<bool> HandleChoiceAsync(string? choice, CancellationToken cancellationToken)
     {
+        if (choice is null)
+        {
+            return false;
+        }
+
         switch (choice)
         {
             case "1":
@@ -61,8 +66,7 @@ public sealed class ConsoleMenu
                 await RunJobAsync(cancellationToken);
                 return true;
             case "4":
-                await backupManager.ExecuteAllJobsAsync(cancellationToken);
-                System.Console.WriteLine(languageSelector.Text("BackupFinished"));
+                await RunAllJobsAsync(cancellationToken);
                 return true;
             case "5":
                 return false;
@@ -95,18 +99,27 @@ public sealed class ConsoleMenu
             return;
         }
 
-        for (var index = 0; index < jobs.Count; index++)
-        {
-            var job = jobs[index];
-            System.Console.WriteLine($"{index + 1}. {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
-        }
+        PrintJobs(jobs);
     }
 
     private async Task RunJobAsync(CancellationToken cancellationToken)
     {
-        await ListJobsAsync(cancellationToken);
+        var jobs = await jobService.GetJobsAsync(cancellationToken);
+        if (jobs.Count == 0)
+        {
+            System.Console.WriteLine(languageSelector.Text("NoJobs"));
+            return;
+        }
+
+        PrintJobs(jobs);
         System.Console.Write($"{languageSelector.Text("JobIndex")} ");
-        if (!int.TryParse(System.Console.ReadLine(), out var jobIndex))
+        var rawJobIndex = System.Console.ReadLine();
+        if (rawJobIndex is null)
+        {
+            throw new InvalidOperationException("Input cancelled.");
+        }
+
+        if (!int.TryParse(rawJobIndex, out var jobIndex))
         {
             System.Console.WriteLine(languageSelector.Text("InvalidChoice"));
             return;
@@ -116,12 +129,39 @@ public sealed class ConsoleMenu
         System.Console.WriteLine(languageSelector.Text("BackupFinished"));
     }
 
+    private async Task RunAllJobsAsync(CancellationToken cancellationToken)
+    {
+        var jobs = await jobService.GetJobsAsync(cancellationToken);
+        if (jobs.Count == 0)
+        {
+            System.Console.WriteLine(languageSelector.Text("NoJobs"));
+            return;
+        }
+
+        await backupManager.ExecuteAllJobsAsync(cancellationToken);
+        System.Console.WriteLine(languageSelector.Text("BackupFinished"));
+    }
+
+    private static void PrintJobs(IReadOnlyList<BackupJob> jobs)
+    {
+        for (var index = 0; index < jobs.Count; index++)
+        {
+            var job = jobs[index];
+            System.Console.WriteLine($"{index + 1}. {job.Name} | {job.Type} | {job.SourceDirectory} -> {job.TargetDirectory}");
+        }
+    }
+
     private string AskRequired(string key)
     {
         while (true)
         {
             System.Console.Write($"{languageSelector.Text(key)} ");
             var value = System.Console.ReadLine();
+            if (value is null)
+            {
+                throw new InvalidOperationException("Input cancelled.");
+            }
+
             if (!string.IsNullOrWhiteSpace(value))
             {
                 return value.Trim();
@@ -149,6 +189,10 @@ public sealed class ConsoleMenu
             System.Console.WriteLine($"{customPathChoice} - {languageSelector.Text("CustomPathOption")}");
             System.Console.Write($"{languageSelector.Text("DirectoryChoicePrompt")} ");
             var choice = System.Console.ReadLine();
+            if (choice is null)
+            {
+                throw new InvalidOperationException("Input cancelled.");
+            }
 
             if (int.TryParse(choice, out var selectedIndex))
             {
@@ -191,6 +235,10 @@ public sealed class ConsoleMenu
 
             System.Console.Write($"{languageSelector.Text("DirectoryChoicePrompt")} ");
             var choice = System.Console.ReadLine();
+            if (choice is null)
+            {
+                throw new InvalidOperationException("Input cancelled.");
+            }
 
             if (!int.TryParse(choice, out var selectedIndex))
             {
@@ -294,7 +342,7 @@ public sealed class ConsoleMenu
                 .OrderBy(directory => directory, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
-        catch (Exception exception) when (exception is UnauthorizedAccessException or IOException)
+        catch (Exception exception) when (exception is UnauthorizedAccessException or IOException or NotSupportedException or ArgumentException)
         {
             return [];
         }
@@ -306,6 +354,11 @@ public sealed class ConsoleMenu
         {
             System.Console.Write($"{languageSelector.Text("BackupType")} ");
             var value = System.Console.ReadLine();
+            if (value is null)
+            {
+                throw new InvalidOperationException("Input cancelled.");
+            }
+
             if (value == "1")
             {
                 return BackupType.Complete;
@@ -331,11 +384,28 @@ public sealed class ConsoleMenu
             ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),
+            InvalidOperationException when exception.Message.StartsWith("Backup job not found:", StringComparison.Ordinal) => languageSelector.Text("BackupJobNotFound"),
             InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => languageSelector.Text("BackupNameAlreadyExists"),
             InvalidOperationException when exception.Message.StartsWith("The backup target directory cannot", StringComparison.Ordinal) => languageSelector.Text("SourceTargetOverlap"),
             InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => languageSelector.Text("TargetDirectoryCreationFailed"),
-            _ => exception.Message
+            InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be read:", StringComparison.Ordinal) => languageSelector.Text("JobsFileReadFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be saved:", StringComparison.Ordinal) => languageSelector.Text("JobsFileSaveFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Settings file could not be read:", StringComparison.Ordinal) => languageSelector.Text("SettingsFileReadFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Settings file could not be saved:", StringComparison.Ordinal) => languageSelector.Text("SettingsFileSaveFailed"),
+            InvalidOperationException when exception.Message.StartsWith("State file could not be read:", StringComparison.Ordinal) => languageSelector.Text("StateFileReadFailed"),
+            InvalidOperationException when exception.Message.StartsWith("State file could not be saved:", StringComparison.Ordinal) => languageSelector.Text("StateFileSaveFailed"),
+            InvalidOperationException when exception.Message.StartsWith("Application directories could not be created:", StringComparison.Ordinal) => languageSelector.Text("ApplicationDirectoriesCreateFailed"),
+            InvalidOperationException when exception.Message == "Input cancelled." => languageSelector.Text("InputCancelled"),
+            _ => FormatUnexpectedError(exception)
         };
+    }
+
+    private string FormatUnexpectedError(Exception exception)
+    {
+        var template = languageSelector.Text("UnexpectedError");
+        return string.Equals(template, "UnexpectedError", StringComparison.Ordinal)
+            ? exception.Message
+            : string.Format(System.Globalization.CultureInfo.InvariantCulture, template, exception.Message);
     }
 
     private sealed record DirectoryOption(string LabelKey, string Path);

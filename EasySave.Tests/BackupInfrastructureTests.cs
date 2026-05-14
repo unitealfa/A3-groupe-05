@@ -242,6 +242,45 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
+    public async Task BackupJobRepositoryReportsUnreadableJobsFile()
+    {
+        var jobsPath = Path.Combine(testRoot, "broken-jobs", "jobs.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(jobsPath)!);
+        await File.WriteAllTextAsync(jobsPath, "{not-json");
+
+        var repository = new BackupJobRepository(jobsPath);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => repository.GetAllAsync());
+        Assert.Contains("Backup jobs file could not be read", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AppSettingsRepositoryReportsUnreadableSettingsFile()
+    {
+        var settingsPath = Path.Combine(testRoot, "broken-settings", "settings.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
+        await File.WriteAllTextAsync(settingsPath, "{not-json");
+
+        var repository = new AppSettingsRepository(settingsPath);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => repository.LoadAsync());
+        Assert.Contains("Settings file could not be read", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task StateManagerReportsUnreadableStateFile()
+    {
+        var statePath = Path.Combine(testRoot, "broken-state", "state.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
+        await File.WriteAllTextAsync(statePath, "{not-json");
+
+        var stateManager = new StateManager(statePath);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => stateManager.GetStatesAsync());
+        Assert.Contains("State file could not be read", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task JsonLoggerServiceCreatesIndentedDailyLogWithMainFields()
     {
         var logDirectory = Path.Combine(testRoot, "logs");
