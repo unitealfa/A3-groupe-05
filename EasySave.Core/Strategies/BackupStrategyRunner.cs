@@ -35,6 +35,8 @@ internal static class BackupStrategyRunner
         {
             Name = job.Name,
             State = "Active",
+            CurrentSourceFilePath = job.SourceDirectory,
+            CurrentDestinationFilePath = job.TargetDirectory,
             TotalFilesToCopy = plannedFiles.Count,
             TotalFilesSize = totalSize,
             RemainingFiles = plannedFiles.Count,
@@ -119,6 +121,7 @@ internal static class BackupStrategyRunner
                     UpdateProgress(state, plannedFiles.Count, copiedFiles, remainingSize);
                     await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, ToNegativeMetric(stopwatch.ElapsedMilliseconds), -1, "Error", exception.Message), cancellationToken);
                     await context.StateManager.UpdateAsync(state, cancellationToken);
+                    break;
                 }
                 finally
                 {
@@ -137,8 +140,8 @@ internal static class BackupStrategyRunner
         }
 
         state.State = hasError ? "Error" : "Finished";
-        state.CurrentSourceFilePath = string.Empty;
-        state.CurrentDestinationFilePath = string.Empty;
+        state.CurrentSourceFilePath = job.SourceDirectory;
+        state.CurrentDestinationFilePath = job.TargetDirectory;
         state.RemainingFiles = 0;
         state.RemainingSize = 0;
         state.Progression = plannedFiles.Count == 0 ? 100 : state.Progression;

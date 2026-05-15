@@ -276,6 +276,35 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
+    public async Task StateManagerConcurrentUpdatesKeepStateJsonValid()
+    {
+        var statePath = Path.Combine(testRoot, "concurrent-state", "state.json");
+        var stateManager = new StateManager(statePath);
+
+        var updates = Enumerable.Range(1, 12)
+            .Select(index => stateManager.UpdateAsync(new BackupState
+            {
+                Name = $"Job {index}",
+                State = "Active",
+                TotalFilesToCopy = index,
+                RemainingFiles = index - 1,
+                CurrentSourceFilePath = $"source-{index}.txt",
+                CurrentDestinationFilePath = $"target-{index}.txt"
+            }))
+            .ToArray();
+
+        await Task.WhenAll(updates);
+
+        var content = await File.ReadAllTextAsync(statePath);
+        var states = JsonSerializer.Deserialize<List<BackupState>>(content);
+
+        Assert.NotNull(states);
+        Assert.Equal(12, states.Count);
+        Assert.All(states, state => Assert.False(string.IsNullOrWhiteSpace(state.CurrentSourceFilePath)));
+        Assert.All(states, state => Assert.False(string.IsNullOrWhiteSpace(state.CurrentDestinationFilePath)));
+    }
+
+    [Fact]
     public async Task BackupJobRepositoryReportsUnreadableJobsFile()
     {
         var jobsPath = Path.Combine(testRoot, "broken-jobs", "jobs.json");

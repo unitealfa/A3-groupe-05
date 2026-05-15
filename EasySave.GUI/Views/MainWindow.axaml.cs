@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -11,6 +12,8 @@ namespace EasySave.GUI.Views;
 
 public partial class MainWindow : Window
 {
+    private bool isShuttingDown;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -112,5 +115,28 @@ public partial class MainWindow : Window
             .ToList();
 
         ViewModel.SetSelectedJobs(selectedJobs);
+    }
+
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        if (!isShuttingDown && ViewModel is not null)
+        {
+            e.Cancel = true;
+            isShuttingDown = true;
+
+            try
+            {
+                await ViewModel.ShutdownAsync();
+            }
+            catch (Exception exception)
+            {
+                ViewModel.ReportError(exception);
+            }
+
+            Close();
+            return;
+        }
+
+        base.OnClosing(e);
     }
 }

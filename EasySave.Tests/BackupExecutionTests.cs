@@ -121,7 +121,8 @@ public sealed class BackupExecutionTests : IDisposable
         var settingsRepository = new AppSettingsRepository(settingsPath);
         await settingsRepository.SaveAsync(new AppSettings
         {
-            EncryptedExtensions = [".txt"]
+            EncryptedExtensions = [".txt"],
+            CryptoSoftPath = "CryptoSoft.exe"
         });
 
         var encryptionService = new FakeEncryptionService(
@@ -150,13 +151,13 @@ public sealed class BackupExecutionTests : IDisposable
     }
 
     [Fact]
-    public async Task BackupEncryptsAllFilesByDefaultWhenNoExtensionFilterIsConfigured()
+    public async Task BackupDoesNotEncryptFilesWhenNoExtensionFilterIsConfigured()
     {
-        var sourceDirectory = Path.Combine(testRoot, "source-encrypt-default");
-        var targetDirectory = Path.Combine(testRoot, "target-encrypt-default");
-        var logDirectory = Path.Combine(testRoot, "logs-encrypt-default");
-        var statePath = Path.Combine(testRoot, "state-encrypt-default", "state.json");
-        var settingsPath = Path.Combine(testRoot, "config-encrypt-default", "settings.json");
+        var sourceDirectory = Path.Combine(testRoot, "source-no-encrypt-default");
+        var targetDirectory = Path.Combine(testRoot, "target-no-encrypt-default");
+        var logDirectory = Path.Combine(testRoot, "logs-no-encrypt-default");
+        var statePath = Path.Combine(testRoot, "state-no-encrypt-default", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-no-encrypt-default", "settings.json");
         Directory.CreateDirectory(sourceDirectory);
 
         await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "secret.txt"), "txt-content");
@@ -180,9 +181,11 @@ public sealed class BackupExecutionTests : IDisposable
 
         await manager.ExecuteJobAsync(1);
 
-        Assert.Equal(2, encryptionService.EncryptedFiles.Count);
-        Assert.Contains(encryptionService.EncryptedFiles, path => path.EndsWith("secret.txt", StringComparison.Ordinal));
-        Assert.Contains(encryptionService.EncryptedFiles, path => path.EndsWith("plain.log", StringComparison.Ordinal));
+        Assert.Empty(encryptionService.EncryptedFiles);
+
+        var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
+        Assert.Equal(2, logEntries.Count);
+        Assert.All(logEntries, entry => Assert.Equal(0, entry.EncryptionTimeMs));
     }
 
     [Fact]
@@ -219,17 +222,23 @@ public sealed class BackupExecutionTests : IDisposable
             new FakeEncryptionService(_ => 0),
             transferService);
 
-        var executionTask = await manager.StartJobAsync(1);
-        await transferService.FirstTransferStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         detector.SetDetected("calc");
+        var executionTask = await manager.StartJobAsync(1);
 
         await WaitUntilAsync(async () =>
         {
-            var states = await ReadStateEntriesAsync(statePath);
-            return states.Any(state => state.Name == "Paused Job" && state.State == "Paused");
+            try
+            {
+                var states = await ReadStateEntriesAsync(statePath);
+                return states.Any(state => state.Name == "Paused Job" && state.State == "Paused");
+            }
+            catch (IOException)
+            {
+                return false;
+            }
         });
 
-        Assert.True(File.Exists(Path.Combine(targetDirectory, "a.txt")));
+        Assert.False(File.Exists(Path.Combine(targetDirectory, "a.txt")));
         Assert.False(File.Exists(Path.Combine(targetDirectory, "b.txt")));
 
         detector.Clear();
@@ -272,6 +281,70 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.Equal("Error", entry.Status);
         Assert.True(entry.TransferTimeMs < 0);
         Assert.True(entry.EncryptionTimeMs < 0);
+    }
+
+    [Fact]
+    public async Task BackupLogsNegativeEncryptionTimeWhenEncryptionFails()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-encryption-error");
+        var targetDirectory = Path.Combine(testRoot, "target-encryption-error");
+        var logDirectory = Path.Combine(testRoot, "logs-encryption-error");
+        var statePath = Path.Combine(testRoot, "state-encryption-error", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-encryption-error", "settings.json");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "secret.txt"), "content");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            EncryptedExtensions = [".txt"],
+            CryptoSoftPath = "CryptoSoft.exe"
+        });
+
+        var manager = CreateConfiguredBackupManager(
+            logDirectory,
+            statePath,
+            sourceDirectory,
+            targetDirectory,
+            BackupType.Complete,
+            "Encryption Error Job",
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => -5));
+
+        await manager.ExecuteJobAsync(1);
+
+        var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
+        var entry = Assert.Single(logEntries);
+        Assert.Equal("Error", entry.Status);
+        Assert.Equal(-5, entry.EncryptionTimeMs);
+        Assert.True(entry.TransferTimeMs >= 0);
+
+        var states = await ReadStateEntriesAsync(statePath);
+        var state = Assert.Single(states);
+        Assert.Equal("Error", state.State);
+    }
+
+    [Fact]
+    public async Task EmptySourceBackupKeepsSourceAndTargetVisibleInState()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-empty");
+        var targetDirectory = Path.Combine(testRoot, "target-empty");
+        var logDirectory = Path.Combine(testRoot, "logs-empty");
+        var statePath = Path.Combine(testRoot, "state-empty", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+
+        var manager = CreateBackupManager(logDirectory, statePath, sourceDirectory, targetDirectory, BackupType.Complete, "Empty Source Job");
+
+        await manager.ExecuteJobAsync(1);
+
+        var states = await ReadStateEntriesAsync(statePath);
+        var state = Assert.Single(states);
+        Assert.Equal("Finished", state.State);
+        Assert.Equal(0, state.TotalFilesToCopy);
+        Assert.Equal(sourceDirectory, state.CurrentSourceFilePath);
+        Assert.Equal(targetDirectory, state.CurrentDestinationFilePath);
     }
 
     [Fact]
@@ -381,7 +454,8 @@ public sealed class BackupExecutionTests : IDisposable
         var settingsRepository = new AppSettingsRepository(settingsPath);
         await settingsRepository.SaveAsync(new AppSettings
         {
-            EncryptedExtensions = ["*"]
+            EncryptedExtensions = ["*"],
+            CryptoSoftPath = "CryptoSoft.exe"
         });
 
         var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-parallel", "jobs.json"));
@@ -438,7 +512,8 @@ public sealed class BackupExecutionTests : IDisposable
         await settingsRepository.SaveAsync(new AppSettings
         {
             EncryptedExtensions = ["*"],
-            PriorityExtensions = [".prio"]
+            PriorityExtensions = [".prio"],
+            CryptoSoftPath = "CryptoSoft.exe"
         });
 
         var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-priority", "jobs.json"));

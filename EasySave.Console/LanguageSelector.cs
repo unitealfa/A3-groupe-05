@@ -39,6 +39,7 @@ public sealed class LanguageSelector
         {
             System.Console.WriteLine($"1 - {Text("LanguageFrench")}");
             System.Console.WriteLine($"2 - {Text("LanguageEnglish")}");
+            System.Console.WriteLine($"3 - {Text("LanguageJapanese")}");
             System.Console.Write("> ");
             choice = System.Console.ReadLine();
             if (choice is null)
@@ -46,14 +47,19 @@ public sealed class LanguageSelector
                 choice = "2";
             }
 
-            if (choice is not "1" and not "2")
+            if (choice is not "1" and not "2" and not "3")
             {
                 System.Console.WriteLine(Text("InvalidChoice"));
             }
         }
-        while (choice is not "1" and not "2");
+        while (choice is not "1" and not "2" and not "3");
 
-        CurrentLanguage = choice == "1" ? "fr" : "en";
+        CurrentLanguage = choice switch
+        {
+            "1" => "fr",
+            "3" => "ja",
+            _ => "en"
+        };
         await SaveSettingsAsync();
         await LoadTranslationsAsync(CurrentLanguage);
     }

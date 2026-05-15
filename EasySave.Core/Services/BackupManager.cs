@@ -182,9 +182,44 @@ public sealed class BackupManager
         }
     }
 
+    public async Task StopAllJobsAndWaitAsync(CancellationToken cancellationToken = default)
+    {
+        var sessions = GetSessionsSnapshot();
+        foreach (var session in sessions)
+        {
+            session.PauseController.Resume();
+            await stateManager.SetStateValueAsync(session.JobName, "Stopped", cancellationToken);
+            session.CancellationTokenSource.Cancel();
+        }
+
+        var tasks = sessions
+            .Select(session => session.ExecutionTask)
+            .Where(task => task is not null)
+            .ToArray();
+
+        if (tasks.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
     public bool IsJobRunning(string jobName)
     {
         return GetSession(jobName) is not null;
+    }
+
+    public async Task ReportStartFailureAsync(BackupJob job, Exception exception, CancellationToken cancellationToken = default)
+    {
+        var settings = await LoadSettingsAsync(cancellationToken);
+        await MarkExecutionAsFailedAsync(job, settings, exception);
     }
 
     private async Task<IReadOnlyList<Task>> StartJobsInternalAsync(IEnumerable<BackupJob> jobs, CancellationToken cancellationToken)

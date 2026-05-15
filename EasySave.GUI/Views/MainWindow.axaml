@@ -21,7 +21,7 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
         <Border Grid.Row="0" Classes="xp-menubar">
-            <Grid ColumnDefinitions="Auto,*,Auto" Margin="12,0" ColumnSpacing="10">
+            <Grid ColumnDefinitions="Auto,*" Margin="12,0" ColumnSpacing="10">
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <Image Source="/Assets/cat-vector-logo-white-background-600nw-2493293385.ico"
                            Width="22"
@@ -29,24 +29,6 @@
                            Stretch="Uniform"
                            VerticalAlignment="Center" />
                     <TextBlock Text="{Binding Texts[ShellTitle]}" Classes="window-title" VerticalAlignment="Center" MaxWidth="220" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,0" Spacing="0">
-                    <Button Classes="xp-menu-button primary"
-                            Content="{Binding Texts[MenuFile]}"
-                            Command="{Binding NavigateToSectionCommand}"
-                            CommandParameter="0" />
-                    <Button Classes="xp-menu-button"
-                            Content="{Binding Texts[MenuBackups]}"
-                            Command="{Binding NavigateToSectionCommand}"
-                            CommandParameter="1" />
-                    <Button Classes="xp-menu-button"
-                            Content="{Binding Texts[MenuSettings]}"
-                            Command="{Binding NavigateToSectionCommand}"
-                            CommandParameter="6" />
-                    <Button Classes="xp-menu-button"
-                            Content="{Binding Texts[MenuHelp]}"
-                            Command="{Binding NavigateToSectionCommand}"
-                            CommandParameter="7" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <TextBlock Text="◉" Foreground="White" FontSize="14" />
@@ -85,7 +67,7 @@
                                 </Border>
 
                                 <StackPanel Grid.Row="1" Margin="16" Spacing="16">
-                                    <Grid ColumnDefinitions="*,*,*,*,*" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
                                         <Border Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
                                             <StackPanel Spacing="4">
                                                 <TextBlock Text="{Binding Texts[DashboardTotalJobs]}" Classes="metric-caption" />
@@ -125,15 +107,9 @@
                                                 <TextBlock Text="{Binding CurrentLogFormatLabel}" Classes="metric-value" Foreground="#1A1C1C" />
                                             </StackPanel>
                                         </Border>
-                                        <Border Grid.Column="4" Classes="xp-summary" BorderBrush="#716F64" BorderThickness="1">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="{Binding Texts[DashboardBusinessSoftware]}" Classes="metric-caption" />
-                                                <TextBlock Text="{Binding DashboardBusinessSoftwareRuntimeText}" FontWeight="Bold" Foreground="#BA1A1A" Margin="0,8,0,0" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                        </Border>
                                     </Grid>
 
-                                    <Grid ColumnDefinitions="8*,4*" ColumnSpacing="8" Height="410">
+                                    <Grid ColumnDefinitions="*" ColumnSpacing="8" Height="410">
                                         <Border Classes="xp-panel" Padding="0" BorderBrush="#716F64" BorderThickness="1">
                                             <Grid RowDefinitions="Auto,*">
                                                 <Border Background="#E2E2E2" BorderBrush="#C3C6D7" BorderThickness="0,0,0,1" Padding="10,6">
@@ -175,25 +151,6 @@
                                             </Grid>
                                         </Border>
 
-                                        <StackPanel Grid.Column="1" Spacing="8">
-                                            <Border Classes="xp-panel" BorderBrush="#716F64" BorderThickness="1" Padding="12">
-                                                <StackPanel Spacing="10">
-                                                    <TextBlock Text="{Binding Texts[DashboardNetworkLoad]}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Center" />
-                                                    <Border Background="#E8E8E8" BorderBrush="#C3C6D7" BorderThickness="1" Height="112">
-                                                        <StackPanel Margin="12" VerticalAlignment="Center" Spacing="8">
-                                                            <TextBlock Text="{Binding DashboardPrimaryGaugeTitle}" HorizontalAlignment="Center" FontWeight="Bold" />
-                                                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding SelectedJobProgressValue}" />
-                                                            <TextBlock Text="{Binding DashboardPrimaryGaugeValue}"
-                                                                       HorizontalAlignment="Center"
-                                                                       FontSize="18"
-                                                                       FontWeight="Bold"
-                                                                       Foreground="#0043B0" />
-                                                            <TextBlock Text="{Binding DashboardPrimaryGaugeSubtitle}" HorizontalAlignment="Center" Classes="caption" />
-                                                        </StackPanel>
-                                                    </Border>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
                                     </Grid>
 
                                     <StackPanel Orientation="Horizontal" Spacing="20">
@@ -207,20 +164,6 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <Border Classes="xp-alert" BorderBrush="#ACA899" Background="#F0F0ED">
-                                        <Grid ColumnDefinitions="2.1*,1.5*" ColumnSpacing="8">
-                                            <StackPanel Orientation="Horizontal" Spacing="14">
-                                                <TextBlock Text="{Binding Texts[DashboardFooterSystemLog]}" Foreground="#444444" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                <Button Content="{Binding Texts[DashboardFooterNetworkStatus]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="4" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
-                                                <Button Content="{Binding Texts[DashboardFooterMedia]}" Command="{Binding NavigateToSectionCommand}" CommandParameter="5" Padding="0" Background="Transparent" BorderThickness="0" Foreground="#444444" />
-                                            </StackPanel>
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding Texts[DashboardFooterCopyright]}"
-                                                       HorizontalAlignment="Right"
-                                                       Classes="caption"
-                                                       TextWrapping="Wrap" />
-                                        </Grid>
-                                    </Border>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -554,6 +497,50 @@
                                                     Classes="xp-primary" />
                                             <Button Content="{Binding Texts[DeleteJobCancelButton]}"
                                                     Command="{Binding CancelDeleteJobCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <Border Background="#66000000"
+                            IsVisible="{Binding IsJobFormLeaveConfirmationVisible}">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                            <Border Width="460" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Texts[JobFormLeaveConfirmTitle]}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1"
+                                                    Width="24"
+                                                    Height="24"
+                                                    Content="Ã—"
+                                                    Foreground="White"
+                                                    FontSize="14"
+                                                    FontWeight="Bold"
+                                                    Padding="0"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    Background="#E81123"
+                                                    BorderBrush="#FFFFFF66"
+                                                    BorderThickness="1"
+                                                    Command="{Binding CancelJobFormLeaveCommand}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="14">
+                                        <TextBlock Text="{Binding JobFormLeaveConfirmationText}" TextWrapping="Wrap" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Content="{Binding Texts[JobFormSaveAndLeaveButton]}"
+                                                    Command="{Binding ConfirmSaveJobFormAndLeaveCommand}"
+                                                    Classes="xp-primary" />
+                                            <Button Content="{Binding Texts[JobFormDiscardAndLeaveButton]}"
+                                                    Command="{Binding ConfirmDiscardJobFormAndLeaveCommand}" />
+                                            <Button Content="{Binding Texts[JobFormStayButton]}"
+                                                    Command="{Binding CancelJobFormLeaveCommand}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Grid>
@@ -984,13 +971,13 @@
                                     <Border Grid.Row="1" Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="8">
                                         <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="10">
                                             <Border Classes="xp-badge success">
-                                                <TextBlock Text="{Binding ActiveStatesCount, StringFormat='Actifs: {0}'}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                <TextBlock Text="{Binding ActiveStatesBadgeText}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </Border>
                                             <Border Grid.Column="1" Classes="xp-badge">
-                                                <TextBlock Text="{Binding FinishedStatesCount, StringFormat='Terminés: {0}'}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                <TextBlock Text="{Binding FinishedStatesBadgeText}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </Border>
                                             <Border Grid.Column="2" Classes="xp-badge warning">
-                                                <TextBlock Text="{Binding ErrorStatesCount, StringFormat='Erreurs: {0}'}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                <TextBlock Text="{Binding ErrorStatesBadgeText}" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                             </Border>
                                             <TextBlock Grid.Column="3" Text="{Binding Texts[StatePageSubtitle]}" Classes="caption" HorizontalAlignment="Right" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                         </Grid>
@@ -1186,7 +1173,7 @@
                                                         <TextBlock Text="{Binding Texts[SettingsCryptoTitle]}" Classes="panel-title" />
                                                     </StackPanel>
                                                     <Border Grid.Column="1" Classes="xp-badge">
-                                                        <TextBlock Text="{Binding Texts[SettingsEncryptionEnabled]}" FontWeight="Bold" Foreground="#003399" />
+                                                        <TextBlock Text="{Binding EncryptionStatusText}" FontWeight="Bold" Foreground="#003399" />
                                                     </Border>
                                                 </Grid>
 

@@ -5,8 +5,12 @@ namespace EasySave.Core.Services;
 
 public sealed class BackupJobService
 {
+    public const int MaxBackupJobNameLength = 100;
+
     private const string BackupFormEmptyMessage = "The backup form is empty.";
     private const string BackupNameRequiredMessage = "The backup name is required.";
+    private const string BackupNameInvalidCharactersMessage = "The backup name contains invalid characters.";
+    private const string BackupNameTooLongMessage = "The backup name is too long.";
     private const string SourceDirectoryRequiredMessage = "The source directory is required.";
     private const string TargetDirectoryRequiredMessage = "The target directory is required.";
     private const string BackupTypeInvalidMessage = "The backup type is invalid.";
@@ -16,6 +20,7 @@ public sealed class BackupJobService
     private const string TargetInsideSourceDirectoryMessage = "The backup target directory cannot be inside the source directory.";
     private const string TargetContainsSourceDirectoryMessage = "The backup target directory cannot contain the source directory.";
     private readonly BackupJobRepository repository;
+    private static readonly char[] InvalidJobNameCharacters = Path.GetInvalidFileNameChars();
 
     public BackupJobService(BackupJobRepository repository)
     {
@@ -104,7 +109,9 @@ public sealed class BackupJobService
     {
         ArgumentNullException.ThrowIfNull(job);
 
-        if (string.IsNullOrWhiteSpace(job.Name))
+        var trimmedName = job.Name?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(trimmedName))
         {
             if (string.IsNullOrWhiteSpace(job.SourceDirectory) && string.IsNullOrWhiteSpace(job.TargetDirectory))
             {
@@ -112,6 +119,16 @@ public sealed class BackupJobService
             }
 
             throw new ArgumentException(BackupNameRequiredMessage, nameof(job));
+        }
+
+        if (!IsValidJobName(trimmedName))
+        {
+            throw new ArgumentException(BackupNameInvalidCharactersMessage, nameof(job));
+        }
+
+        if (trimmedName.Length > MaxBackupJobNameLength)
+        {
+            throw new ArgumentException(BackupNameTooLongMessage, nameof(job));
         }
 
         if (string.IsNullOrWhiteSpace(job.SourceDirectory))
@@ -142,6 +159,18 @@ public sealed class BackupJobService
         }
 
         return sourcePaths;
+    }
+
+    public static bool IsValidJobName(string? jobName)
+    {
+        if (string.IsNullOrWhiteSpace(jobName))
+        {
+            return false;
+        }
+
+        return jobName.Trim().All(character =>
+            !char.IsControl(character) &&
+            !InvalidJobNameCharacters.Contains(character));
     }
 
     private static void EnsureJobNameIsUnique(IEnumerable<BackupJob> jobs, string jobName, string? originalName = null)

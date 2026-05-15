@@ -384,6 +384,8 @@ public sealed class ConsoleMenu
             DirectoryNotFoundException when exception.Message.StartsWith("Target directory does not exist:", StringComparison.Ordinal) => FormatMissingPathMessage("TargetDirectoryDoesNotExistDetailed", exception.Message, "Target directory does not exist:"),
             ArgumentException when exception.Message == "The backup form is empty." => languageSelector.Text("JobFormAllFieldsRequired"),
             ArgumentException when exception.Message == "The backup name is required." => languageSelector.Text("BackupNameRequired"),
+            ArgumentException when exception.Message == "The backup name contains invalid characters." => languageSelector.Text("BackupNameInvalidCharacters"),
+            ArgumentException when exception.Message == "The backup name is too long." => string.Format(CultureInfo.InvariantCulture, languageSelector.Text("BackupNameTooLong"), BackupJobService.MaxBackupJobNameLength),
             ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),

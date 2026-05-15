@@ -8,17 +8,19 @@ public sealed class AppSettings
 
     public string LogFormatName { get; set; } = "json";
 
-    public List<string> EncryptedExtensions { get; set; } = ["*"];
+    public List<string> EncryptedExtensions { get; set; } = [];
 
     public List<string> PriorityExtensions { get; set; } = [];
 
     public List<string> BusinessSoftwareProcesses { get; set; } = [];
 
-    public int LargeFileThresholdKo { get; set; }
+    public int LargeFileThresholdKo { get; set; } = 1;
 
     public string CryptoSoftPath { get; set; } = string.Empty;
 
     public string CryptoKey { get; set; } = "EasySave";
+
+    public bool IsEncryptionEnabled => !string.IsNullOrWhiteSpace(CryptoSoftPath);
 
     public LogFormat LogFormat => string.Equals(LogFormatName, "xml", StringComparison.OrdinalIgnoreCase)
         ? LogFormat.Xml
@@ -26,9 +28,18 @@ public sealed class AppSettings
 
     public bool ShouldEncrypt(string filePath)
     {
+        if (!IsEncryptionEnabled)
+        {
+            return false;
+        }
+
         var normalizedExtensions = GetNormalizedEncryptedExtensions();
-        if (normalizedExtensions.Count == 0 ||
-            normalizedExtensions.Contains("*", StringComparer.OrdinalIgnoreCase))
+        if (normalizedExtensions.Count == 0)
+        {
+            return false;
+        }
+
+        if (normalizedExtensions.Contains("*", StringComparer.OrdinalIgnoreCase))
         {
             return true;
         }
