@@ -1,3 +1,4 @@
+using System.Globalization;
 using EasySave.Core.Models;
 using EasySave.Core.Services;
 
@@ -379,14 +380,18 @@ public sealed class ConsoleMenu
         {
             ArgumentOutOfRangeException => languageSelector.Text("BackupJobIndexOutOfRange"),
             DirectoryNotFoundException when exception.Message.StartsWith("Source directory does not exist:", StringComparison.Ordinal) => languageSelector.Text("SourceDirectoryDoesNotExist"),
-            DirectoryNotFoundException when exception.Message.StartsWith("Source path does not exist:", StringComparison.Ordinal) => languageSelector.Text("SourceDirectoryDoesNotExist"),
+            DirectoryNotFoundException when exception.Message.StartsWith("Source path does not exist:", StringComparison.Ordinal) => FormatMissingPathMessage("SourcePathDoesNotExistDetailed", exception.Message, "Source path does not exist:"),
+            DirectoryNotFoundException when exception.Message.StartsWith("Target directory does not exist:", StringComparison.Ordinal) => FormatMissingPathMessage("TargetDirectoryDoesNotExistDetailed", exception.Message, "Target directory does not exist:"),
+            ArgumentException when exception.Message == "The backup form is empty." => languageSelector.Text("JobFormAllFieldsRequired"),
             ArgumentException when exception.Message == "The backup name is required." => languageSelector.Text("BackupNameRequired"),
             ArgumentException when exception.Message == "The source directory is required." => languageSelector.Text("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => languageSelector.Text("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),
             InvalidOperationException when exception.Message.StartsWith("Backup job not found:", StringComparison.Ordinal) => languageSelector.Text("BackupJobNotFound"),
             InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => languageSelector.Text("BackupNameAlreadyExists"),
-            InvalidOperationException when exception.Message.StartsWith("The backup target directory cannot", StringComparison.Ordinal) => languageSelector.Text("SourceTargetOverlap"),
+            InvalidOperationException when exception.Message == "The backup target directory cannot be the same as the source directory." => languageSelector.Text("SourceTargetSameDirectory"),
+            InvalidOperationException when exception.Message == "The backup target directory cannot be inside the source directory." => languageSelector.Text("TargetInsideSourceDirectory"),
+            InvalidOperationException when exception.Message == "The backup target directory cannot contain the source directory." => languageSelector.Text("TargetContainsSourceDirectory"),
             InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => languageSelector.Text("TargetDirectoryCreationFailed"),
             InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be read:", StringComparison.Ordinal) => languageSelector.Text("JobsFileReadFailed"),
             InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be saved:", StringComparison.Ordinal) => languageSelector.Text("JobsFileSaveFailed"),
@@ -398,6 +403,15 @@ public sealed class ConsoleMenu
             InvalidOperationException when exception.Message == "Input cancelled." => languageSelector.Text("InputCancelled"),
             _ => FormatUnexpectedError(exception)
         };
+    }
+
+    private string FormatMissingPathMessage(string translationKey, string rawMessage, string prefix)
+    {
+        var missingPath = rawMessage[prefix.Length..].Trim();
+        var template = languageSelector.Text(translationKey);
+        return string.Equals(template, translationKey, StringComparison.Ordinal)
+            ? missingPath
+            : string.Format(CultureInfo.InvariantCulture, template, missingPath);
     }
 
     private string FormatUnexpectedError(Exception exception)

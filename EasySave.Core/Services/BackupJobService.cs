@@ -5,6 +5,16 @@ namespace EasySave.Core.Services;
 
 public sealed class BackupJobService
 {
+    private const string BackupFormEmptyMessage = "The backup form is empty.";
+    private const string BackupNameRequiredMessage = "The backup name is required.";
+    private const string SourceDirectoryRequiredMessage = "The source directory is required.";
+    private const string TargetDirectoryRequiredMessage = "The target directory is required.";
+    private const string BackupTypeInvalidMessage = "The backup type is invalid.";
+    private const string SourcePathDoesNotExistMessage = "Source path does not exist: ";
+    private const string TargetDirectoryDoesNotExistMessage = "Target directory does not exist: ";
+    private const string SourceTargetSameDirectoryMessage = "The backup target directory cannot be the same as the source directory.";
+    private const string TargetInsideSourceDirectoryMessage = "The backup target directory cannot be inside the source directory.";
+    private const string TargetContainsSourceDirectoryMessage = "The backup target directory cannot contain the source directory.";
     private readonly BackupJobRepository repository;
 
     public BackupJobService(BackupJobRepository repository)
@@ -64,34 +74,7 @@ public sealed class BackupJobService
 
     public static void ValidateJob(BackupJob job)
     {
-        ArgumentNullException.ThrowIfNull(job);
-
-        if (string.IsNullOrWhiteSpace(job.Name))
-        {
-            throw new ArgumentException("The backup name is required.", nameof(job));
-        }
-
-        if (string.IsNullOrWhiteSpace(job.SourceDirectory))
-        {
-            throw new ArgumentException("The source directory is required.", nameof(job));
-        }
-
-        var sourcePaths = SourceSelectionParser.Parse(job.SourceDirectory);
-        if (sourcePaths.Count == 0)
-        {
-            throw new ArgumentException("The source directory is required.", nameof(job));
-        }
-
-        var missingSourcePath = sourcePaths.FirstOrDefault(path => !SourceSelectionParser.IsExistingSource(path));
-        if (!string.IsNullOrWhiteSpace(missingSourcePath))
-        {
-            throw new DirectoryNotFoundException($"Source path does not exist: {missingSourcePath}");
-        }
-
-        if (string.IsNullOrWhiteSpace(job.TargetDirectory))
-        {
-            throw new ArgumentException("The target directory is required.", nameof(job));
-        }
+        var sourcePaths = ValidateCommonJobFields(job);
 
         try
         {
@@ -103,11 +86,62 @@ public sealed class BackupJobService
         }
 
         EnsureSourceAndTargetDoNotOverlap(sourcePaths, job.TargetDirectory);
+    }
+
+    public static void ValidateJobForExecution(BackupJob job)
+    {
+        var sourcePaths = ValidateCommonJobFields(job);
+
+        if (!Directory.Exists(job.TargetDirectory))
+        {
+            throw new DirectoryNotFoundException(TargetDirectoryDoesNotExistMessage + job.TargetDirectory);
+        }
+
+        EnsureSourceAndTargetDoNotOverlap(sourcePaths, job.TargetDirectory);
+    }
+
+    private static IReadOnlyList<string> ValidateCommonJobFields(BackupJob job)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+
+        if (string.IsNullOrWhiteSpace(job.Name))
+        {
+            if (string.IsNullOrWhiteSpace(job.SourceDirectory) && string.IsNullOrWhiteSpace(job.TargetDirectory))
+            {
+                throw new ArgumentException(BackupFormEmptyMessage, nameof(job));
+            }
+
+            throw new ArgumentException(BackupNameRequiredMessage, nameof(job));
+        }
+
+        if (string.IsNullOrWhiteSpace(job.SourceDirectory))
+        {
+            throw new ArgumentException(SourceDirectoryRequiredMessage, nameof(job));
+        }
+
+        var sourcePaths = SourceSelectionParser.Parse(job.SourceDirectory);
+        if (sourcePaths.Count == 0)
+        {
+            throw new ArgumentException(SourceDirectoryRequiredMessage, nameof(job));
+        }
+
+        var missingSourcePath = sourcePaths.FirstOrDefault(path => !SourceSelectionParser.IsExistingSource(path));
+        if (!string.IsNullOrWhiteSpace(missingSourcePath))
+        {
+            throw new DirectoryNotFoundException(SourcePathDoesNotExistMessage + missingSourcePath);
+        }
+
+        if (string.IsNullOrWhiteSpace(job.TargetDirectory))
+        {
+            throw new ArgumentException(TargetDirectoryRequiredMessage, nameof(job));
+        }
 
         if (!Enum.IsDefined(job.Type))
         {
-            throw new ArgumentException("The backup type is invalid.", nameof(job));
+            throw new ArgumentException(BackupTypeInvalidMessage, nameof(job));
         }
+
+        return sourcePaths;
     }
 
     private static void EnsureJobNameIsUnique(IEnumerable<BackupJob> jobs, string jobName, string? originalName = null)
@@ -135,24 +169,27 @@ public sealed class BackupJobService
                 var sourceParentDirectory = NormalizePath(Path.GetDirectoryName(sourcePath)!);
                 if (string.Equals(sourceParentDirectory, normalizedTargetDirectory, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException("The backup target directory cannot be the same as the source directory.");
+                    throw new InvalidOperationException(SourceTargetSameDirectoryMessage);
                 }
 
                 continue;
             }
 
-            if (PathsOverlap(normalizedSourcePath, normalizedTargetDirectory))
+            if (string.Equals(normalizedSourcePath, normalizedTargetDirectory, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("The backup target directory cannot be the same as, inside, or contain the source directory.");
+                throw new InvalidOperationException(SourceTargetSameDirectoryMessage);
+            }
+
+            if (IsSubdirectoryOf(normalizedTargetDirectory, normalizedSourcePath))
+            {
+                throw new InvalidOperationException(TargetInsideSourceDirectoryMessage);
+            }
+
+            if (IsSubdirectoryOf(normalizedSourcePath, normalizedTargetDirectory))
+            {
+                throw new InvalidOperationException(TargetContainsSourceDirectoryMessage);
             }
         }
-    }
-
-    private static bool PathsOverlap(string firstPath, string secondPath)
-    {
-        return string.Equals(firstPath, secondPath, StringComparison.OrdinalIgnoreCase) ||
-               IsSubdirectoryOf(firstPath, secondPath) ||
-               IsSubdirectoryOf(secondPath, firstPath);
     }
 
     private static bool IsSubdirectoryOf(string path, string potentialParent)

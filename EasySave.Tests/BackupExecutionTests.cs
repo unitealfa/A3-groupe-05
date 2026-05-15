@@ -294,6 +294,46 @@ public sealed class BackupExecutionTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteJobAsyncRejectsSourceThatNoLongerExistsAtLaunch()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-missing-at-launch");
+        var targetDirectory = Path.Combine(testRoot, "target-missing-source");
+        var logDirectory = Path.Combine(testRoot, "logs-missing-source");
+        var statePath = Path.Combine(testRoot, "state-missing-source", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+        Directory.CreateDirectory(targetDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "gone.txt"), "content");
+
+        var manager = CreateBackupManager(logDirectory, statePath, sourceDirectory, targetDirectory, BackupType.Complete, "Missing Source Job");
+
+        Directory.Delete(sourceDirectory, recursive: true);
+
+        var exception = await Assert.ThrowsAsync<DirectoryNotFoundException>(() => manager.ExecuteJobAsync(1));
+        Assert.StartsWith("Source path does not exist:", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ExecuteJobAsyncRejectsTargetThatNoLongerExistsAtLaunch()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-existing-at-launch");
+        var targetDirectory = Path.Combine(testRoot, "target-missing-at-launch");
+        var logDirectory = Path.Combine(testRoot, "logs-missing-target");
+        var statePath = Path.Combine(testRoot, "state-missing-target", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+        Directory.CreateDirectory(targetDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "file.txt"), "content");
+
+        var manager = CreateBackupManager(logDirectory, statePath, sourceDirectory, targetDirectory, BackupType.Complete, "Missing Target Job");
+
+        Directory.Delete(targetDirectory, recursive: true);
+
+        var exception = await Assert.ThrowsAsync<DirectoryNotFoundException>(() => manager.ExecuteJobAsync(1));
+        Assert.StartsWith("Target directory does not exist:", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CompleteBackupCopiesMultipleSourceFilesWithoutCollisions()
     {
         var sourceOne = Path.Combine(testRoot, "source-multi-1");

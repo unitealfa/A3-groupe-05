@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using EasySave.GUI.ViewModels;
 using Avalonia.Controls.Selection;
+using Avalonia.Data;
 
 namespace EasySave.GUI.Views;
 
@@ -79,25 +80,36 @@ public partial class MainWindow : Window
     }
     private async Task PickSourceAsync()
     {
-        var picker = new SourceSelectionWindow(ViewModel?.SourceDirectory);
-        var selectedSource = await picker.ShowDialog<string?>(this);
-        if (!string.IsNullOrWhiteSpace(selectedSource))
-        {
-            ViewModel?.SetSourceDirectory(selectedSource);
-        }
+        await PickFolderAsync(path => ViewModel?.SetSourceDirectory(path));
     }
 
     private void JobsListBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (sender is not ListBox listBox || ViewModel is null)
+        if (sender is not ListBox || ViewModel is null)
         {
             return;
         }
 
-        var selectedJobs = listBox.SelectedItems?
+        SyncMarkedJobsToViewModel();
+    }
+
+    private void JobSelectionCheckBox_Changed(object? sender, RoutedEventArgs e)
+    {
+        SyncMarkedJobsToViewModel();
+    }
+
+    private void SyncMarkedJobsToViewModel()
+    {
+        if (ViewModel is null || JobsListBox.ItemsSource is null)
+        {
+            return;
+        }
+
+        var selectedJobs = JobsListBox.ItemsSource
             .OfType<JobListRow>()
+            .Where(row => row.IsMarked)
             .Select(row => row.Job)
-            .ToList() ?? [];
+            .ToList();
 
         ViewModel.SetSelectedJobs(selectedJobs);
     }

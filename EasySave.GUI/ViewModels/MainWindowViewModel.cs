@@ -17,6 +17,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         WriteIndented = true
     };
+    private const int SettingsSectionIndex = 6;
 
     private readonly AppSettingsRepository settingsRepository;
     private readonly BackupJobService jobService;
@@ -27,6 +28,11 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly List<BackupJob> selectedJobs = [];
     private Exception? startupException;
     private bool isRefreshingStates;
+    private bool suppressSettingsDirtyTracking;
+    private bool suppressSectionChangeGuard;
+    private string appliedSettingsSnapshot = string.Empty;
+    private int? pendingSectionIndexAfterSettingsConfirmation;
+    private int previousSectionIndex;
 
     [ObservableProperty]
     private Dictionary<string, string> texts = new(StringComparer.OrdinalIgnoreCase);
@@ -36,6 +42,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private ObservableCollection<BackupState> states = [];
+
+    [ObservableProperty]
+    private ObservableCollection<StateListRow> stateRows = [];
 
     [ObservableProperty]
     private ObservableCollection<DashboardJobRow> dashboardJobs = [];
@@ -56,7 +65,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string targetDirectory = string.Empty;
 
     [ObservableProperty]
-    private BackupType selectedBackupType = BackupType.Complete;
+    private BackupType? selectedBackupType;
 
     [ObservableProperty]
     private string selectedLanguage = "en";
@@ -128,6 +137,24 @@ public partial class MainWindowViewModel : ViewModelBase
     private ObservableCollection<SelectionOption> languageOptions = [];
 
     [ObservableProperty]
+    private string jobFormValidationMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool isSettingsDirty;
+
+    [ObservableProperty]
+    private bool isSettingsLeaveConfirmationVisible;
+
+    [ObservableProperty]
+    private bool isMultiRunConfirmationVisible;
+
+    [ObservableProperty]
+    private string settingsFeedbackMessage = string.Empty;
+
+    [ObservableProperty]
+    private bool isSettingsFeedbackSuccess;
+
+    [ObservableProperty]
     private ObservableCollection<SelectionOption> logFormatOptions = [];
 
     [ObservableProperty]
@@ -181,6 +208,12 @@ public partial class MainWindowViewModel : ViewModelBase
         CloseJobFormOverlayCommand = new RelayCommand(CloseJobFormOverlay);
         ConfirmDeleteJobCommand = new AsyncRelayCommand(ConfirmDeleteJobAsync);
         CancelDeleteJobCommand = new RelayCommand(CancelDeleteJob);
+        ConfirmSaveSettingsAndLeaveCommand = new AsyncRelayCommand(ConfirmSaveSettingsAndLeaveAsync);
+        ConfirmDiscardSettingsAndLeaveCommand = new AsyncRelayCommand(ConfirmDiscardSettingsAndLeaveAsync);
+        CancelSettingsLeaveCommand = new RelayCommand(CancelSettingsLeave);
+        PrepareMultiRunCommand = new RelayCommand(PrepareMultiRun);
+        ConfirmMultiRunCommand = new AsyncRelayCommand(ConfirmMultiRunAsync);
+        CancelMultiRunCommand = new RelayCommand(CancelMultiRun);
         RefreshLocalizedOptions();
     }
 
@@ -230,6 +263,18 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IRelayCommand CancelDeleteJobCommand { get; }
 
+    public IAsyncRelayCommand ConfirmSaveSettingsAndLeaveCommand { get; }
+
+    public IAsyncRelayCommand ConfirmDiscardSettingsAndLeaveCommand { get; }
+
+    public IRelayCommand CancelSettingsLeaveCommand { get; }
+
+    public IRelayCommand PrepareMultiRunCommand { get; }
+
+    public IAsyncRelayCommand ConfirmMultiRunCommand { get; }
+
+    public IRelayCommand CancelMultiRunCommand { get; }
+
     public int TotalJobsCount => Jobs.Count;
 
     public int ActiveStatesCount => States.Count(state => string.Equals(state.State, "Active", StringComparison.OrdinalIgnoreCase));
@@ -243,6 +288,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public int BlockedStatesCount => States.Count(state => string.Equals(state.State, "Blocked", StringComparison.OrdinalIgnoreCase));
 
     public int ErrorStatesCount => States.Count(state => string.Equals(state.State, "Error", StringComparison.OrdinalIgnoreCase));
+
+    public string ActiveStatesBadgeText => string.Format(CultureInfo.CurrentCulture, Translate("StateBadgeActive"), ActiveStatesCount);
+
+    public string FinishedStatesBadgeText => string.Format(CultureInfo.CurrentCulture, Translate("StateBadgeFinished"), FinishedStatesCount);
+
+    public string ErrorStatesBadgeText => string.Format(CultureInfo.CurrentCulture, Translate("StateBadgeError"), ErrorStatesCount);
 
     public string SelectedJobName => SelectedJob?.Name ?? Translate("NoJobSelectedValue");
 
@@ -308,7 +359,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             if (FinishedStatesCount > 0)
             {
-                return Translate("StatusFinished");
+                return Translate("JobsStatusSuccess");
             }
 
             return Translate("StatusReady");
@@ -472,6 +523,18 @@ public partial class MainWindowViewModel : ViewModelBase
         ? Translate("SaveJobChanges")
         : Translate("CreateJob");
 
+    public bool HasJobFormValidationError => !string.IsNullOrWhiteSpace(JobFormValidationMessage);
+
+    public bool HasStatusMessage =>
+        !string.IsNullOrWhiteSpace(StatusMessage) &&
+        !string.Equals(StatusMessage, Translate("StatusReady"), StringComparison.Ordinal);
+
+    public bool HasJobsPageStatusMessage =>
+        HasStatusMessage &&
+        !string.Equals(StatusMessage, Translate("SettingsChangesApplied"), StringComparison.Ordinal) &&
+        !string.Equals(StatusMessage, Translate("SettingsNoChangesToApply"), StringComparison.Ordinal) &&
+        !string.Equals(StatusMessage, Translate("SettingsChangesDiscarded"), StringComparison.Ordinal);
+
     public string LogDirectoryPath => AppPaths.LogsDirectory;
 
     public string StateFilePath => AppPaths.StateFilePath;
@@ -496,6 +559,13 @@ public partial class MainWindowViewModel : ViewModelBase
         CultureInfo.InvariantCulture,
         Translate("DeleteJobConfirmMessage"),
         PendingDeleteJobName);
+
+    public string SettingsLeaveConfirmationText => Translate("SettingsLeaveConfirmMessage");
+
+    public string MultiRunConfirmationText => string.Format(
+        CultureInfo.InvariantCulture,
+        Translate("RunSelectedJobsConfirmMessage"),
+        string.Join(", ", selectedJobs.Select(job => job.Name)));
 
     public string Translate(string key)
     {
@@ -579,6 +649,33 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        ValidateJobFormInput();
+    }
+
+    partial void OnJobNameChanged(string value)
+    {
+        ValidateJobFormInput();
+    }
+
+    partial void OnSourceDirectoryChanged(string value)
+    {
+        ValidateJobFormInput();
+    }
+
+    partial void OnTargetDirectoryChanged(string value)
+    {
+        ValidateJobFormInput();
+    }
+
+    partial void OnStatusMessageChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasStatusMessage));
+        OnPropertyChanged(nameof(HasJobsPageStatusMessage));
+    }
+
+    partial void OnSelectedBackupTypeChanged(BackupType? value)
+    {
+        ValidateJobFormInput();
     }
 
     partial void OnSelectedLanguageChanged(string value)
@@ -588,28 +685,38 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        UpdateSettingsDirtyState();
     }
 
     partial void OnSelectedLogFormatChanged(string value)
     {
         OnPropertyChanged(nameof(CurrentLogFormatLabel));
         OnPropertyChanged(nameof(DashboardFooterRightText));
+        UpdateSettingsDirtyState();
         _ = RefreshLogPreviewAsync();
     }
 
     partial void OnEncryptedExtensionsTextChanged(string value)
     {
         OnPropertyChanged(nameof(EncryptedExtensionsSummary));
+        UpdateSettingsDirtyState();
     }
 
     partial void OnPriorityExtensionsTextChanged(string value)
     {
         OnPropertyChanged(nameof(PriorityExtensionsSummary));
+        UpdateSettingsDirtyState();
     }
 
     partial void OnLargeFileThresholdKoTextChanged(string value)
     {
         OnPropertyChanged(nameof(LargeFileThresholdSummary));
+        UpdateSettingsDirtyState();
+    }
+
+    partial void OnJobFormValidationMessageChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasJobFormValidationError));
     }
 
     partial void OnBusinessSoftwareProcessesTextChanged(string value)
@@ -619,6 +726,40 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(DashboardBusinessSoftwareRuntimeText));
         OnPropertyChanged(nameof(IsBusinessSoftwareDetected));
         OnPropertyChanged(nameof(ExecutionBusinessSoftwareAlertText));
+        UpdateSettingsDirtyState();
+    }
+
+    partial void OnCryptoSoftPathChanged(string value)
+    {
+        UpdateSettingsDirtyState();
+    }
+
+    partial void OnCryptoKeyChanged(string value)
+    {
+        UpdateSettingsDirtyState();
+    }
+
+    partial void OnSelectedSectionIndexChanged(int value)
+    {
+        if (suppressSectionChangeGuard)
+        {
+            previousSectionIndex = value;
+            return;
+        }
+
+        if (previousSectionIndex == SettingsSectionIndex &&
+            value != SettingsSectionIndex &&
+            IsSettingsDirty)
+        {
+            pendingSectionIndexAfterSettingsConfirmation = value;
+            suppressSectionChangeGuard = true;
+            SelectedSectionIndex = previousSectionIndex;
+            suppressSectionChangeGuard = false;
+            IsSettingsLeaveConfirmationVisible = true;
+            return;
+        }
+
+        previousSectionIndex = value;
     }
 
     partial void OnIsBusyChanged(bool value)
@@ -632,9 +773,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task LoadSettingsIntoViewModelAsync()
     {
+        suppressSettingsDirtyTracking = true;
         var settings = await settingsRepository.LoadAsync();
-        SelectedLanguage = settings.Language;
-        SelectedLogFormat = settings.LogFormatName;
+        var selectedLanguage = string.IsNullOrWhiteSpace(settings.Language) ? "en" : settings.Language;
+        var selectedLogFormat = string.IsNullOrWhiteSpace(settings.LogFormatName) ? "json" : settings.LogFormatName;
+
+        await LoadTranslationsAsync(selectedLanguage);
+        RefreshLocalizedOptions();
+
+        SelectedLanguage = selectedLanguage;
+        SelectedLogFormat = selectedLogFormat;
         EncryptedExtensionsText = string.Join(";", settings.EncryptedExtensions);
         PriorityExtensionsText = string.Join(";", settings.PriorityExtensions);
         BusinessSoftwareProcessesText = string.Join(";", settings.BusinessSoftwareProcesses);
@@ -643,7 +791,9 @@ public partial class MainWindowViewModel : ViewModelBase
             ? Path.Combine(AppPaths.BaseDirectory, "CryptoSoft")
             : settings.CryptoSoftPath;
         CryptoKey = settings.CryptoKey;
-        await LoadTranslationsAsync(SelectedLanguage);
+        appliedSettingsSnapshot = CreateSettingsSnapshot(settings);
+        suppressSettingsDirtyTracking = false;
+        IsSettingsDirty = false;
     }
 
     private async Task LoadTranslationsAsync(string language)
@@ -717,6 +867,9 @@ public partial class MainWindowViewModel : ViewModelBase
             OnPropertyChanged(nameof(StoppedStatesCount));
             OnPropertyChanged(nameof(BlockedStatesCount));
             OnPropertyChanged(nameof(ErrorStatesCount));
+            OnPropertyChanged(nameof(ActiveStatesBadgeText));
+            OnPropertyChanged(nameof(FinishedStatesBadgeText));
+            OnPropertyChanged(nameof(ErrorStatesBadgeText));
             OnPropertyChanged(nameof(GlobalStatusLabel));
             OnPropertyChanged(nameof(DashboardQuickStatsPercent));
             OnPropertyChanged(nameof(DashboardQuickStatsText));
@@ -732,6 +885,7 @@ public partial class MainWindowViewModel : ViewModelBase
             NotifySelectionProperties();
             RebuildDashboardRows();
             RebuildJobListRows();
+            RebuildStateRows();
             await RefreshLogPreviewAsync();
         }
         catch (Exception exception)
@@ -766,15 +920,35 @@ public partial class MainWindowViewModel : ViewModelBase
         await RunBusyAsync(async () =>
         {
             var settings = BuildValidatedSettingsFromViewModel();
+            var nextSnapshot = CreateSettingsSnapshot(settings);
+            if (string.Equals(nextSnapshot, appliedSettingsSnapshot, StringComparison.Ordinal))
+            {
+                StatusMessage = Translate("SettingsNoChangesToApply");
+                SettingsFeedbackMessage = Translate("SettingsNoChangesToApply");
+                IsSettingsFeedbackSuccess = false;
+                return;
+            }
+
             await settingsRepository.SaveAsync(settings);
             await LoadTranslationsAsync(settings.Language);
             await RefreshLogPreviewAsync();
-            StatusMessage = Translate("SettingsSaved");
+            appliedSettingsSnapshot = nextSnapshot;
+            IsSettingsDirty = false;
+            StatusMessage = Translate("SettingsChangesApplied");
+            SettingsFeedbackMessage = Translate("SettingsChangesApplied");
+            IsSettingsFeedbackSuccess = true;
         });
     }
 
     private async Task AddJobAsync()
     {
+        ValidateJobFormInput(forceRequiredValidation: true);
+        if (HasJobFormValidationError)
+        {
+            StatusMessage = JobFormValidationMessage;
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             if (IsEditingJob && backupManager.IsJobRunning(EditingOriginalJobName))
@@ -790,7 +964,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 Name = JobName.Trim(),
                 SourceDirectory = SourceDirectory.Trim(),
                 TargetDirectory = TargetDirectory.Trim(),
-                Type = SelectedBackupType
+                Type = SelectedBackupType!.Value
             };
 
             if (IsEditingJob)
@@ -821,34 +995,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
-            var stoppedOrInactiveJobIndexes = new List<int>();
-            var resumedAny = false;
-
-            foreach (var job in jobsToRun)
-            {
-                if (backupManager.IsJobRunning(job.Name))
-                {
-                    resumedAny |= await backupManager.ResumeJobAsync(job.Name);
-                }
-                else
-                {
-                    var jobIndex = Jobs.IndexOf(job);
-                    if (jobIndex >= 0)
-                    {
-                        stoppedOrInactiveJobIndexes.Add(jobIndex + 1);
-                    }
-                }
-            }
-
-            if (stoppedOrInactiveJobIndexes.Count > 0)
-            {
-                await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
-            }
-
-            StatusMessage = resumedAny && stoppedOrInactiveJobIndexes.Count == 0
-                ? Translate("ExecutionResumed")
-                : Translate("ExecutionStarted");
+            await ExecuteJobsAsync(jobsToRun);
             await RefreshStatesAsync();
         });
     }
@@ -983,9 +1130,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        SetSelectedJobs([job]);
         SelectedJob = job;
-        await RunSelectedJobAsync();
+        await RunBusyAsync(async () =>
+        {
+            await ExecuteJobsAsync([job]);
+            await RefreshStatesAsync();
+        });
     }
 
     private async Task StopDashboardJobAsync(BackupJob? job)
@@ -995,9 +1145,13 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        SetSelectedJobs([job!]);
         SelectedJob = job;
-        await StopSelectedJobAsync();
+        await RunBusyAsync(async () =>
+        {
+            await backupManager.StopJobAsync(job!.Name);
+            StatusMessage = Translate("ExecutionStopped");
+            await RefreshStatesAsync();
+        });
     }
 
     private void RequestDeleteJob(BackupJob? job)
@@ -1290,8 +1444,44 @@ public partial class MainWindowViewModel : ViewModelBase
         JobName = string.Empty;
         SourceDirectory = string.Empty;
         TargetDirectory = string.Empty;
-        SelectedBackupType = BackupType.Complete;
+        SelectedBackupType = null;
+        JobFormValidationMessage = string.Empty;
         StatusMessage = Translate("JobFormReset");
+    }
+
+    private void PrepareMultiRun()
+    {
+        if (selectedJobs.Count == 0)
+        {
+            StatusMessage = Translate("SelectJobsFirst");
+            return;
+        }
+
+        IsMultiRunConfirmationVisible = true;
+        OnPropertyChanged(nameof(MultiRunConfirmationText));
+    }
+
+    private async Task ConfirmMultiRunAsync()
+    {
+        var jobsToRun = GetSelectedJobsOrFallback();
+        if (jobsToRun.Count == 0)
+        {
+            IsMultiRunConfirmationVisible = false;
+            StatusMessage = Translate("SelectJobsFirst");
+            return;
+        }
+
+        IsMultiRunConfirmationVisible = false;
+        await RunBusyAsync(async () =>
+        {
+            await ExecuteJobsAsync(jobsToRun);
+            await RefreshStatesAsync();
+        });
+    }
+
+    private void CancelMultiRun()
+    {
+        IsMultiRunConfirmationVisible = false;
     }
 
     private void PrepareCreateJob()
@@ -1327,6 +1517,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void NavigateToSection(int index)
     {
+        if (SelectedSectionIndex == SettingsSectionIndex &&
+            index != SettingsSectionIndex &&
+            IsSettingsDirty)
+        {
+            pendingSectionIndexAfterSettingsConfirmation = index;
+            IsSettingsLeaveConfirmationVisible = true;
+            return;
+        }
+
         SelectedSectionIndex = index;
     }
 
@@ -1339,7 +1538,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         SetSelectedJobs([job]);
         SelectedJob = job;
-        SelectedSectionIndex = 3;
+        SelectedSectionIndex = 1;
         StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("DashboardJobOpened"), job.Name);
     }
 
@@ -1353,6 +1552,82 @@ public partial class MainWindowViewModel : ViewModelBase
         IsSettingsGuideVisible = false;
     }
 
+    private async Task ConfirmSaveSettingsAndLeaveAsync()
+    {
+        await SaveSettingsAsync();
+        if (IsSettingsDirty)
+        {
+            return;
+        }
+
+        IsSettingsLeaveConfirmationVisible = false;
+        if (pendingSectionIndexAfterSettingsConfirmation.HasValue)
+        {
+            suppressSectionChangeGuard = true;
+            SelectedSectionIndex = pendingSectionIndexAfterSettingsConfirmation.Value;
+            suppressSectionChangeGuard = false;
+            previousSectionIndex = SelectedSectionIndex;
+        }
+
+        pendingSectionIndexAfterSettingsConfirmation = null;
+    }
+
+    private async Task ConfirmDiscardSettingsAndLeaveAsync()
+    {
+        await LoadSettingsIntoViewModelAsync();
+        IsSettingsLeaveConfirmationVisible = false;
+        if (pendingSectionIndexAfterSettingsConfirmation.HasValue)
+        {
+            suppressSectionChangeGuard = true;
+            SelectedSectionIndex = pendingSectionIndexAfterSettingsConfirmation.Value;
+            suppressSectionChangeGuard = false;
+            previousSectionIndex = SelectedSectionIndex;
+        }
+
+        pendingSectionIndexAfterSettingsConfirmation = null;
+        StatusMessage = Translate("SettingsChangesDiscarded");
+        SettingsFeedbackMessage = string.Empty;
+        IsSettingsFeedbackSuccess = false;
+    }
+
+    private void CancelSettingsLeave()
+    {
+        pendingSectionIndexAfterSettingsConfirmation = null;
+        IsSettingsLeaveConfirmationVisible = false;
+    }
+
+    private async Task ExecuteJobsAsync(IReadOnlyList<BackupJob> jobsToRun)
+    {
+        await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
+        var stoppedOrInactiveJobIndexes = new List<int>();
+        var resumedAny = false;
+
+        foreach (var job in jobsToRun)
+        {
+            if (backupManager.IsJobRunning(job.Name))
+            {
+                resumedAny |= await backupManager.ResumeJobAsync(job.Name);
+            }
+            else
+            {
+                var jobIndex = Jobs.IndexOf(job);
+                if (jobIndex >= 0)
+                {
+                    stoppedOrInactiveJobIndexes.Add(jobIndex + 1);
+                }
+            }
+        }
+
+        if (stoppedOrInactiveJobIndexes.Count > 0)
+        {
+            await backupManager.StartJobsAsync(stoppedOrInactiveJobIndexes);
+        }
+
+        StatusMessage = resumedAny && stoppedOrInactiveJobIndexes.Count == 0
+            ? Translate("ExecutionResumed")
+            : Translate("ExecutionStarted");
+    }
+
     private void CloseJobFormOverlay()
     {
         ResetJobForm();
@@ -1363,6 +1638,168 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         StatusMessage = string.Empty;
+    }
+
+    private void ValidateJobFormInput(bool forceRequiredValidation = false)
+    {
+        var trimmedName = JobName.Trim();
+        var trimmedSource = SourceDirectory.Trim();
+        var trimmedTarget = TargetDirectory.Trim();
+
+        if (forceRequiredValidation &&
+            string.IsNullOrWhiteSpace(trimmedName) &&
+            string.IsNullOrWhiteSpace(trimmedSource) &&
+            string.IsNullOrWhiteSpace(trimmedTarget))
+        {
+            SetJobFormValidationMessage("JobFormAllFieldsRequired");
+            return;
+        }
+
+        if (forceRequiredValidation || !string.IsNullOrWhiteSpace(trimmedName))
+        {
+            if (string.IsNullOrWhiteSpace(trimmedName))
+            {
+                SetJobFormValidationMessage("BackupNameRequired");
+                return;
+            }
+
+            var duplicateExists = Jobs.Any(existing =>
+                !string.Equals(existing.Name, EditingOriginalJobName, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(existing.Name, trimmedName, StringComparison.OrdinalIgnoreCase));
+            if (duplicateExists)
+            {
+                SetJobFormValidationMessage("BackupNameAlreadyExists");
+                return;
+            }
+        }
+
+        if (forceRequiredValidation || !string.IsNullOrWhiteSpace(trimmedSource))
+        {
+            if (string.IsNullOrWhiteSpace(trimmedSource))
+            {
+                SetJobFormValidationMessage("SourceDirectoryRequired");
+                return;
+            }
+        }
+
+        if (forceRequiredValidation || !string.IsNullOrWhiteSpace(trimmedTarget))
+        {
+            if (string.IsNullOrWhiteSpace(trimmedTarget))
+            {
+                SetJobFormValidationMessage("TargetDirectoryRequired");
+                return;
+            }
+        }
+
+        if (forceRequiredValidation && SelectedBackupType is null)
+        {
+            SetJobFormValidationMessage("BackupTypeRequired");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(trimmedSource) && !string.IsNullOrWhiteSpace(trimmedTarget))
+        {
+            var overlapErrorKey = GetSourceTargetOverlapValidationKey(trimmedSource, trimmedTarget);
+            if (!string.IsNullOrWhiteSpace(overlapErrorKey))
+            {
+                SetJobFormValidationMessage(overlapErrorKey);
+                return;
+            }
+        }
+
+        JobFormValidationMessage = string.Empty;
+    }
+
+    private void SetJobFormValidationMessage(string translationKey)
+    {
+        JobFormValidationMessage = Translate(translationKey);
+    }
+
+    private static string? GetSourceTargetOverlapValidationKey(string rawSource, string rawTarget)
+    {
+        try
+        {
+            var normalizedTargetDirectory = NormalizePath(rawTarget);
+            var sourcePaths = SourceSelectionParser.Parse(rawSource);
+
+            foreach (var sourcePath in sourcePaths)
+            {
+                var normalizedSourcePath = NormalizePath(sourcePath);
+
+                if (File.Exists(sourcePath))
+                {
+                    var sourceParentDirectory = Path.GetDirectoryName(sourcePath);
+                    if (!string.IsNullOrWhiteSpace(sourceParentDirectory) &&
+                        string.Equals(NormalizePath(sourceParentDirectory), normalizedTargetDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "SourceTargetSameDirectory";
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(normalizedSourcePath, normalizedTargetDirectory, StringComparison.OrdinalIgnoreCase))
+                {
+                    return "SourceTargetSameDirectory";
+                }
+
+                if (IsSubdirectoryOf(normalizedTargetDirectory, normalizedSourcePath))
+                {
+                    return "TargetInsideSourceDirectory";
+                }
+
+                if (IsSubdirectoryOf(normalizedSourcePath, normalizedTargetDirectory))
+                {
+                    return "TargetContainsSourceDirectory";
+                }
+            }
+        }
+        catch (Exception exception) when (exception is NotSupportedException or ArgumentException or IOException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private static bool IsSubdirectoryOf(string path, string potentialParent)
+    {
+        return path.StartsWith(potentialParent + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizePath(string path)
+    {
+        return Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+
+    private void UpdateSettingsDirtyState()
+    {
+        if (suppressSettingsDirtyTracking)
+        {
+            return;
+        }
+
+        IsSettingsDirty = !string.Equals(CreateSettingsSnapshot(BuildSettingsFromViewModel()), appliedSettingsSnapshot, StringComparison.Ordinal);
+        if (IsSettingsDirty)
+        {
+            SettingsFeedbackMessage = string.Empty;
+            IsSettingsFeedbackSuccess = false;
+        }
+    }
+
+    private static string CreateSettingsSnapshot(AppSettings settings)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            Language = settings.Language,
+            LogFormatName = settings.LogFormatName,
+            EncryptedExtensions = settings.EncryptedExtensions,
+            PriorityExtensions = settings.PriorityExtensions,
+            BusinessSoftwareProcesses = settings.BusinessSoftwareProcesses,
+            LargeFileThresholdKo = settings.LargeFileThresholdKo,
+            CryptoSoftPath = settings.CryptoSoftPath,
+            CryptoKey = settings.CryptoKey
+        }, JsonOptions);
     }
 
     private BackupState? GetRelevantState()
@@ -1438,11 +1875,37 @@ public partial class MainWindowViewModel : ViewModelBase
                     lastRun,
                     Translate(statusKey),
                     statusKey,
-                    CanStopJob(job));
+                    CanStopJob(job),
+                    selectedJobs.Any(selected => string.Equals(selected.Name, job.Name, StringComparison.OrdinalIgnoreCase)));
             }));
 
         SyncSelectedJobsWithCurrentJobs();
         OnPropertyChanged(nameof(FilteredJobsCount));
+    }
+
+    private void RebuildStateRows()
+    {
+        StateRows = new ObservableCollection<StateListRow>(
+            States.Select(state =>
+            {
+                var job = Jobs.FirstOrDefault(existing => string.Equals(existing.Name, state.Name, StringComparison.OrdinalIgnoreCase));
+                var currentSource = !string.IsNullOrWhiteSpace(state.CurrentSourceFilePath)
+                    ? state.CurrentSourceFilePath
+                    : job?.SourceDirectory ?? Translate("NoDataPlaceholder");
+                var currentDestination = !string.IsNullOrWhiteSpace(state.CurrentDestinationFilePath)
+                    ? state.CurrentDestinationFilePath
+                    : job?.TargetDirectory ?? Translate("NoDataPlaceholder");
+
+                return new StateListRow(
+                    state.Name,
+                    TranslateState(state.State),
+                    state.Progression,
+                    state.RemainingFiles,
+                    state.TotalFilesSize,
+                    state.RemainingSize,
+                    currentSource,
+                    currentDestination);
+            }));
     }
 
     private void NotifySelectionProperties()
@@ -1479,6 +1942,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        OnPropertyChanged(nameof(HasJobFormValidationError));
         OnPropertyChanged(nameof(CanRunSelectedJob));
         OnPropertyChanged(nameof(CanRunAllJobs));
         OnPropertyChanged(nameof(CanPauseSelectedJob));
@@ -1486,10 +1950,15 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanStopSelectedJob));
         OnPropertyChanged(nameof(CanStopAllJobs));
         OnPropertyChanged(nameof(DeleteConfirmationText));
+        OnPropertyChanged(nameof(SettingsLeaveConfirmationText));
+        OnPropertyChanged(nameof(MultiRunConfirmationText));
     }
 
     private void NotifyAllUiSummaries()
     {
+        OnPropertyChanged(nameof(ActiveStatesBadgeText));
+        OnPropertyChanged(nameof(FinishedStatesBadgeText));
+        OnPropertyChanged(nameof(ErrorStatesBadgeText));
         OnPropertyChanged(nameof(CurrentLanguageLabel));
         OnPropertyChanged(nameof(CurrentLogFormatLabel));
         OnPropertyChanged(nameof(EncryptedExtensionsSummary));
@@ -1512,14 +1981,18 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        OnPropertyChanged(nameof(HasJobFormValidationError));
         OnPropertyChanged(nameof(CanRunSelectedJob));
         OnPropertyChanged(nameof(CanRunAllJobs));
         OnPropertyChanged(nameof(CanPauseSelectedJob));
         OnPropertyChanged(nameof(CanPauseAllJobs));
         OnPropertyChanged(nameof(CanStopSelectedJob));
         OnPropertyChanged(nameof(CanStopAllJobs));
+        OnPropertyChanged(nameof(SettingsLeaveConfirmationText));
+        OnPropertyChanged(nameof(MultiRunConfirmationText));
         RebuildDashboardRows();
         RebuildJobListRows();
+        RebuildStateRows();
         NotifySelectionProperties();
     }
 
@@ -1619,6 +2092,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         BackupTypeOptions =
         [
+            new BackupTypeOption(null, Translate("SelectBackupTypeOption")),
             new BackupTypeOption(BackupType.Complete, Translate("CompleteLabel")),
             new BackupTypeOption(BackupType.Differential, Translate("DifferentialLabel"))
         ];
@@ -1694,14 +2168,18 @@ public partial class MainWindowViewModel : ViewModelBase
         return exception switch
         {
             ArgumentOutOfRangeException => Translate("BackupJobIndexOutOfRange"),
-            DirectoryNotFoundException when exception.Message.StartsWith("Source path does not exist:", StringComparison.Ordinal) => Translate("SourceDirectoryDoesNotExist"),
+            DirectoryNotFoundException when exception.Message.StartsWith("Source path does not exist:", StringComparison.Ordinal) => FormatMissingPathMessage("SourcePathDoesNotExistDetailed", exception.Message, "Source path does not exist:"),
+            DirectoryNotFoundException when exception.Message.StartsWith("Target directory does not exist:", StringComparison.Ordinal) => FormatMissingPathMessage("TargetDirectoryDoesNotExistDetailed", exception.Message, "Target directory does not exist:"),
+            ArgumentException when exception.Message == "The backup form is empty." => Translate("JobFormAllFieldsRequired"),
             ArgumentException when exception.Message == "The backup name is required." => Translate("BackupNameRequired"),
             ArgumentException when exception.Message == "The source directory is required." => Translate("SourceDirectoryRequired"),
             ArgumentException when exception.Message == "The target directory is required." => Translate("TargetDirectoryRequired"),
             ArgumentException when exception.Message == "The backup type is invalid." => Translate("BackupTypeInvalid"),
             InvalidOperationException when exception.Message.StartsWith("Backup job not found:", StringComparison.Ordinal) => Translate("BackupJobNotFound"),
             InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => Translate("BackupNameAlreadyExists"),
-            InvalidOperationException when exception.Message.StartsWith("The backup target directory cannot", StringComparison.Ordinal) => Translate("SourceTargetOverlap"),
+            InvalidOperationException when exception.Message == "The backup target directory cannot be the same as the source directory." => Translate("SourceTargetSameDirectory"),
+            InvalidOperationException when exception.Message == "The backup target directory cannot be inside the source directory." => Translate("TargetInsideSourceDirectory"),
+            InvalidOperationException when exception.Message == "The backup target directory cannot contain the source directory." => Translate("TargetContainsSourceDirectory"),
             InvalidOperationException when exception.Message.StartsWith("The target directory could not be created:", StringComparison.Ordinal) => Translate("TargetDirectoryCreationFailed"),
             InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be read:", StringComparison.Ordinal) => Translate("JobsFileReadFailed"),
             InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be saved:", StringComparison.Ordinal) => Translate("JobsFileSaveFailed"),
@@ -1712,6 +2190,15 @@ public partial class MainWindowViewModel : ViewModelBase
             InvalidOperationException when exception.Message.StartsWith("Application directories could not be created:", StringComparison.Ordinal) => Translate("ApplicationDirectoriesCreateFailed"),
             _ => FormatUnexpectedError(exception)
         };
+    }
+
+    private string FormatMissingPathMessage(string translationKey, string rawMessage, string prefix)
+    {
+        var missingPath = rawMessage[prefix.Length..].Trim();
+        var template = Translate(translationKey);
+        return string.Equals(template, translationKey, StringComparison.Ordinal)
+            ? missingPath
+            : string.Format(CultureInfo.InvariantCulture, template, missingPath);
     }
 
     private string FormatUnexpectedError(Exception exception)
@@ -1740,17 +2227,63 @@ public partial class MainWindowViewModel : ViewModelBase
 
 public sealed record SelectionOption(string Value, string Label);
 
-public sealed record BackupTypeOption(BackupType Value, string Label);
+public sealed record BackupTypeOption(BackupType? Value, string Label);
+
+public sealed record StateListRow(
+    string Name,
+    string State,
+    double Progression,
+    int RemainingFiles,
+    long TotalFilesSize,
+    long RemainingSize,
+    string CurrentSourceFilePath,
+    string CurrentDestinationFilePath);
 
 public sealed record DashboardJobRow(BackupJob Job, string Name, string Status, string Completion, bool CanStop);
 
-public sealed record JobListRow(
-    BackupJob Job,
-    string Name,
-    string Source,
-    string Destination,
-    string Type,
-    string LastRun,
-    string Status,
-    string StatusKey,
-    bool CanStop);
+public sealed class JobListRow
+{
+    public JobListRow(
+        BackupJob job,
+        string name,
+        string source,
+        string destination,
+        string type,
+        string lastRun,
+        string status,
+        string statusKey,
+        bool canStop,
+        bool isMarked)
+    {
+        Job = job;
+        Name = name;
+        Source = source;
+        Destination = destination;
+        Type = type;
+        LastRun = lastRun;
+        Status = status;
+        StatusKey = statusKey;
+        CanStop = canStop;
+        IsMarked = isMarked;
+    }
+
+    public BackupJob Job { get; }
+
+    public string Name { get; }
+
+    public string Source { get; }
+
+    public string Destination { get; }
+
+    public string Type { get; }
+
+    public string LastRun { get; }
+
+    public string Status { get; }
+
+    public string StatusKey { get; }
+
+    public bool CanStop { get; }
+
+    public bool IsMarked { get; set; }
+}

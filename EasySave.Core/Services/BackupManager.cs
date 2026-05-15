@@ -200,7 +200,7 @@ public sealed class BackupManager
 
     private async Task<Task> StartJobInternalAsync(BackupJob job, CancellationToken cancellationToken)
     {
-        BackupJobService.ValidateJob(job);
+        BackupJobService.ValidateJobForExecution(job);
 
         var settings = await LoadSettingsAsync(cancellationToken);
         var session = CreateOrReplaceSession(job.Name);

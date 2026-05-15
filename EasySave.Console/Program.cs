@@ -78,6 +78,10 @@ static string BuildFatalMessage(Exception exception)
 {
     return exception switch
     {
+        DirectoryNotFoundException when exception.Message.StartsWith("Source path does not exist:", StringComparison.Ordinal) =>
+            $"Erreur : le fichier ou dossier source n'existe plus : {exception.Message["Source path does not exist:".Length..].Trim()}",
+        DirectoryNotFoundException when exception.Message.StartsWith("Target directory does not exist:", StringComparison.Ordinal) =>
+            $"Erreur : le dossier cible n'existe plus : {exception.Message["Target directory does not exist:".Length..].Trim()}",
         InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be read:", StringComparison.Ordinal) =>
             "Impossible de lire le fichier des travaux de sauvegarde. Vérifiez qu'il n'est pas corrompu et que vous avez les droits d'accès.",
         InvalidOperationException when exception.Message.StartsWith("Backup jobs file could not be saved:", StringComparison.Ordinal) =>

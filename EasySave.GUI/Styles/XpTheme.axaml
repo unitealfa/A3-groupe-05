@@ -46,6 +46,16 @@
         <Setter Property="MaxLines" Value="1" />
     </Style>
 
+    <Style Selector="TextBlock.sidebar-tab-text">
+        <Setter Property="Width" Value="232" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="TextTrimming" Value="None" />
+        <Setter Property="MaxLines" Value="4" />
+        <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+
     <Style Selector="TextBlock.window-title">
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="MaxLines" Value="1" />
@@ -267,11 +277,21 @@
     </Style>
 
     <Style Selector="Button.xp-action-button">
+        <Setter Property="Focusable" Value="False" />
         <Setter Property="Padding" Value="6,4" />
         <Setter Property="MinHeight" Value="24" />
         <Setter Property="FontSize" Value="11" />
         <Setter Property="TextBlock.MaxLines" Value="1" />
         <Setter Property="TextBlock.TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style Selector="Button.xp-action-button:pointerover">
+        <Setter Property="Background">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#FAFAF7" Offset="0" />
+                <GradientStop Color="#E2DED4" Offset="1" />
+            </LinearGradientBrush>
+        </Setter>
     </Style>
 
     <Style Selector="Button.xp-menu-button">
@@ -361,19 +381,23 @@
                 <GradientStop Color="#6382BF" Offset="1" />
             </LinearGradientBrush>
         </Setter>
-        <Setter Property="Width" Value="256" />
+        <Setter Property="Width" Value="282" />
     </Style>
 
     <Style Selector="TabItem">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="#003399" />
-        <Setter Property="Padding" Value="12,8" />
-        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="Margin" Value="8,0,8,4" />
         <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="MinHeight" Value="48" />
+        <Setter Property="Width" Value="254" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="TextBlock.TextWrapping" Value="Wrap" />
-        <Setter Property="TextBlock.MaxLines" Value="2" />
+        <Setter Property="TextBlock.TextTrimming" Value="None" />
+        <Setter Property="TextBlock.MaxLines" Value="4" />
     </Style>
 
     <Style Selector="TabItem:pointerover">
@@ -405,8 +429,8 @@
     </Style>
 
     <Style Selector="ListBoxItem:selected Border.xp-row">
-        <Setter Property="Background" Value="#DCE8FF" />
-        <Setter Property="BorderBrush" Value="{DynamicResource XpSelectionBlueBrush}" />
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#D0CEC4" />
     </Style>
 
     <Style Selector="Border.xp-badge">

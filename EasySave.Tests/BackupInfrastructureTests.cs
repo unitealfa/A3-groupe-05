@@ -32,6 +32,21 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
+    public void ValidateJobRejectsCompletelyEmptyForm()
+    {
+        var job = new BackupJob
+        {
+            Name = string.Empty,
+            SourceDirectory = string.Empty,
+            TargetDirectory = string.Empty,
+            Type = BackupType.Complete
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => BackupJobService.ValidateJob(job));
+        Assert.StartsWith("The backup form is empty.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ValidateJobAcceptsExistingSingleSourceFile()
     {
         var sourceDirectory = Path.Combine(testRoot, "single-file-source");
@@ -65,7 +80,7 @@ public sealed class BackupInfrastructureTests : IDisposable
         };
 
         var exception = Assert.Throws<InvalidOperationException>(() => BackupJobService.ValidateJob(job));
-        Assert.Contains("target directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("The backup target directory cannot be the same as the source directory.", exception.Message);
     }
 
     [Fact]
@@ -83,7 +98,26 @@ public sealed class BackupInfrastructureTests : IDisposable
         };
 
         var exception = Assert.Throws<InvalidOperationException>(() => BackupJobService.ValidateJob(job));
-        Assert.Contains("target directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("The backup target directory cannot be inside the source directory.", exception.Message);
+    }
+
+    [Fact]
+    public void ValidateJobRejectsTargetDirectoryThatContainsSourceDirectory()
+    {
+        var sourceParentDirectory = Path.Combine(testRoot, "container-source");
+        var sourceDirectory = Path.Combine(sourceParentDirectory, "nested-source");
+        Directory.CreateDirectory(sourceDirectory);
+
+        var job = new BackupJob
+        {
+            Name = "Containing Folder",
+            SourceDirectory = sourceDirectory,
+            TargetDirectory = sourceParentDirectory,
+            Type = BackupType.Complete
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => BackupJobService.ValidateJob(job));
+        Assert.Equal("The backup target directory cannot contain the source directory.", exception.Message);
     }
 
     [Fact]
