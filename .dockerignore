@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/.vscode/
+**/TestResults/
+publish/
+publish-cli/
+.git/
+.gitignore
+EasySave - Raccourci.lnk
+docker-data/logs/*
+docker-data/state/*

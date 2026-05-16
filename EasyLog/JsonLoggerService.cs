@@ -33,7 +33,19 @@ public sealed class JsonLoggerService : ILoggerService
             var entries = await ReadEntriesAsync(logFilePath, cancellationToken);
             entries.Add(entry);
 
-            var tempFilePath = $"{logFilePath}.{Guid.NewGuid():N}.tmp";
+            await PersistEntriesAsync(logFilePath, entries, cancellationToken);
+        }
+        finally
+        {
+            writeLock.Release();
+        }
+    }
+
+    private static async Task PersistEntriesAsync(string logFilePath, List<LogEntry> entries, CancellationToken cancellationToken)
+    {
+        var tempFilePath = $"{logFilePath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
             await using (var stream = new FileStream(
                              tempFilePath,
                              FileMode.CreateNew,
@@ -45,12 +57,32 @@ public sealed class JsonLoggerService : ILoggerService
                 await JsonSerializer.SerializeAsync(stream, entries, JsonOptions, cancellationToken);
             }
 
-            File.Move(tempFilePath, logFilePath, overwrite: true);
+            try
+            {
+                File.Move(tempFilePath, logFilePath, overwrite: true);
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                await WriteDirectlyAsync(logFilePath, entries, cancellationToken);
+            }
         }
         finally
         {
-            writeLock.Release();
+            TryDeleteTempFile(tempFilePath);
         }
+    }
+
+    private static async Task WriteDirectlyAsync(string logFilePath, List<LogEntry> entries, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            logFilePath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite,
+            bufferSize: 4096,
+            useAsync: true);
+        await JsonSerializer.SerializeAsync(stream, entries, JsonOptions, cancellationToken);
     }
 
     private static string GetDefaultLogDirectory()
@@ -73,5 +105,19 @@ public sealed class JsonLoggerService : ILoggerService
             bufferSize: 4096,
             useAsync: true);
         return await JsonSerializer.DeserializeAsync<List<LogEntry>>(stream, JsonOptions, cancellationToken) ?? [];
+    }
+
+    private static void TryDeleteTempFile(string tempFilePath)
+    {
+        try
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+        catch
+        {
+        }
     }
 }

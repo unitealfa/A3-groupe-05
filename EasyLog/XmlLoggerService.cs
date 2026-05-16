@@ -29,10 +29,22 @@ public sealed class XmlLoggerService : ILoggerService
             var entries = await ReadEntriesAsync(logFilePath, cancellationToken);
             entries.Add(entry);
 
-            var document = new XDocument(
-                new XElement("LogEntries", entries.Select(CreateLogEntryElement)));
+            await PersistEntriesAsync(logFilePath, entries, cancellationToken);
+        }
+        finally
+        {
+            writeLock.Release();
+        }
+    }
 
-            var tempFilePath = $"{logFilePath}.{Guid.NewGuid():N}.tmp";
+    private static async Task PersistEntriesAsync(string logFilePath, List<LogEntry> entries, CancellationToken cancellationToken)
+    {
+        var document = new XDocument(
+            new XElement("LogEntries", entries.Select(CreateLogEntryElement)));
+
+        var tempFilePath = $"{logFilePath}.{Guid.NewGuid():N}.tmp";
+        try
+        {
             await using (var stream = new FileStream(
                              tempFilePath,
                              FileMode.CreateNew,
@@ -44,12 +56,32 @@ public sealed class XmlLoggerService : ILoggerService
                 await document.SaveAsync(stream, SaveOptions.None, cancellationToken);
             }
 
-            File.Move(tempFilePath, logFilePath, overwrite: true);
+            try
+            {
+                File.Move(tempFilePath, logFilePath, overwrite: true);
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                await WriteDirectlyAsync(logFilePath, document, cancellationToken);
+            }
         }
         finally
         {
-            writeLock.Release();
+            TryDeleteTempFile(tempFilePath);
         }
+    }
+
+    private static async Task WriteDirectlyAsync(string logFilePath, XDocument document, CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            logFilePath,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.ReadWrite,
+            bufferSize: 4096,
+            useAsync: true);
+        await document.SaveAsync(stream, SaveOptions.None, cancellationToken);
     }
 
     private static XElement CreateLogEntryElement(LogEntry entry)
@@ -106,5 +138,19 @@ public sealed class XmlLoggerService : ILoggerService
     private static string GetDefaultLogDirectory()
     {
         return Path.Combine(Directory.GetCurrentDirectory(), "logs");
+    }
+
+    private static void TryDeleteTempFile(string tempFilePath)
+    {
+        try
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
+        catch
+        {
+        }
     }
 }
