@@ -59,6 +59,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private ObservableCollection<JobListRow> jobListRows = [];
 
     [ObservableProperty]
+    private DashboardJobRow? selectedDashboardJobRow;
+
+    [ObservableProperty]
     private BackupJob? selectedJob;
 
     [ObservableProperty]
@@ -335,6 +338,8 @@ public partial class MainWindowViewModel : ViewModelBase
     public string ErrorStatesBadgeText => string.Format(CultureInfo.CurrentCulture, Translate("StateBadgeError"), ErrorStatesCount);
 
     public string SelectedJobName => SelectedJob?.Name ?? Translate("NoJobSelectedValue");
+
+    public bool HasSelectedJob => SelectedJob is not null;
 
     public string SelectedJobSource => SelectedJob?.SourceDirectory ?? Translate("NoDataPlaceholder");
 
@@ -722,9 +727,31 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedJobChanged(BackupJob? value)
     {
+        var matchingRow = value is null
+            ? null
+            : DashboardJobs.FirstOrDefault(row => string.Equals(row.Job.Name, value.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (!ReferenceEquals(SelectedDashboardJobRow, matchingRow))
+        {
+            SelectedDashboardJobRow = matchingRow;
+        }
+
         NotifySelectionProperties();
         RebuildDashboardRows();
         OnPropertyChanged(nameof(JobsSelectedCountText));
+    }
+
+    partial void OnSelectedDashboardJobRowChanged(DashboardJobRow? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        if (!ReferenceEquals(SelectedJob, value.Job))
+        {
+            SelectedJob = value.Job;
+        }
     }
 
     partial void OnJobFilterTextChanged(string value)
@@ -1793,7 +1820,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
         SetSelectedJobs([job]);
         SelectedJob = job;
-        SelectedSectionIndex = 1;
         StatusMessage = string.Format(CultureInfo.InvariantCulture, Translate("DashboardJobOpened"), job.Name);
     }
 
@@ -2458,6 +2484,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 return new DashboardJobRow(job, job.Name, status, completion, CanStopJob(job));
             }));
+
+        SelectedDashboardJobRow = SelectedJob is null
+            ? null
+            : DashboardJobs.FirstOrDefault(row => string.Equals(row.Job.Name, SelectedJob.Name, StringComparison.OrdinalIgnoreCase));
     }
 
     private void RebuildJobListRows()
@@ -2545,6 +2575,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void NotifySelectionProperties()
     {
         OnPropertyChanged(nameof(SelectedJobName));
+        OnPropertyChanged(nameof(HasSelectedJob));
         OnPropertyChanged(nameof(SelectedJobSource));
         OnPropertyChanged(nameof(SelectedJobTarget));
         OnPropertyChanged(nameof(SelectedJobTypeLabel));

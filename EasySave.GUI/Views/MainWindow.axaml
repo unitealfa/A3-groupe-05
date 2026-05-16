@@ -109,7 +109,7 @@
                                         </Border>
                                     </Grid>
 
-                                    <Grid ColumnDefinitions="*" ColumnSpacing="8" Height="410">
+                                    <Grid ColumnDefinitions="1.1*,0.9*" ColumnSpacing="10" Height="410">
                                         <Border Classes="xp-panel" Padding="0" BorderBrush="#716F64" BorderThickness="1">
                                             <Grid RowDefinitions="Auto,*">
                                                 <Border Background="#E2E2E2" BorderBrush="#C3C6D7" BorderThickness="0,0,0,1" Padding="10,6">
@@ -134,12 +134,23 @@
                                                              Classes="xp-list"
                                                              Background="White"
                                                              BorderThickness="0"
-                                                             ItemsSource="{Binding DashboardJobs}">
+                                                             ItemsSource="{Binding DashboardJobs}"
+                                                             SelectedItem="{Binding SelectedDashboardJobRow, Mode=TwoWay}"
+                                                             SelectionMode="Single">
                                                         <ListBox.ItemTemplate>
                                                             <DataTemplate>
                                                                 <Border Classes="xp-row" Padding="8,6">
                                                                     <Grid ColumnDefinitions="2.7*,1.7*,1.2*" ColumnSpacing="8">
-                                                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                                        <Button Content="{Binding Name}"
+                                                                                Command="{Binding $parent[Window].DataContext.OpenDashboardJobCommand}"
+                                                                                CommandParameter="{Binding Job}"
+                                                                                HorizontalAlignment="Stretch"
+                                                                                HorizontalContentAlignment="Left"
+                                                                                Padding="0"
+                                                                                Background="Transparent"
+                                                                                BorderThickness="0"
+                                                                                Foreground="#0043B0"
+                                                                                FontWeight="Bold" />
                                                                         <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="#1D8F2F" FontWeight="Bold" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                                         <TextBlock Grid.Column="2" Text="{Binding Completion}" TextTrimming="CharacterEllipsis" MaxLines="1" />
                                                                     </Grid>
@@ -151,6 +162,108 @@
                                             </Grid>
                                         </Border>
 
+                                        <Border Grid.Column="1" Classes="xp-panel" Padding="0" BorderBrush="#716F64" BorderThickness="1">
+                                            <Grid RowDefinitions="Auto,*,Auto">
+                                                <Border Background="#E2E2E2" BorderBrush="#C3C6D7" BorderThickness="0,0,0,1" Padding="10,6">
+                                                    <TextBlock Text="{Binding Texts[SelectedJobPanelTitle]}" FontWeight="Bold" FontSize="12" Foreground="#424655" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                                </Border>
+
+                                                <Grid Grid.Row="1" Margin="12" RowDefinitions="Auto,Auto,*" RowSpacing="10">
+                                                    <WrapPanel ItemWidth="110" Orientation="Horizontal" IsVisible="{Binding HasSelectedJob}">
+                                                        <Button Content="{Binding Texts[RunJobNow]}"
+                                                                Command="{Binding RunSelectedJobCommand}"
+                                                                IsEnabled="{Binding CanRunSelectedJob}"
+                                                                Classes="xp-action-button"
+                                                                MinWidth="98" />
+                                                        <Button Content="{Binding Texts[PauseJob]}"
+                                                                Command="{Binding PauseSelectedJobCommand}"
+                                                                IsEnabled="{Binding CanPauseSelectedJob}"
+                                                                Classes="xp-action-button"
+                                                                MinWidth="98" />
+                                                        <Button Content="{Binding Texts[StopJob]}"
+                                                                Command="{Binding StopSelectedJobCommand}"
+                                                                IsEnabled="{Binding CanStopSelectedJob}"
+                                                                Classes="xp-action-button"
+                                                                MinWidth="98" />
+                                                        <Button Content="{Binding Texts[EditJobAction]}"
+                                                                Command="{Binding EditJobCommand}"
+                                                                CommandParameter="{Binding SelectedJob}"
+                                                                Classes="xp-action-button"
+                                                                MinWidth="98" />
+                                                        <Button Content="{Binding Texts[DeleteJobAction]}"
+                                                                Command="{Binding DeleteJobCommand}"
+                                                                CommandParameter="{Binding SelectedJob}"
+                                                                Classes="xp-action-button"
+                                                                MinWidth="98" />
+                                                    </WrapPanel>
+
+                                                    <Border Grid.Row="1"
+                                                            Background="#FFF4E5"
+                                                            BorderBrush="#C95E00"
+                                                            BorderThickness="1"
+                                                            Padding="10,8"
+                                                            IsVisible="{Binding !HasSelectedJob}">
+                                                        <TextBlock Text="{Binding Texts[SelectJobHint]}"
+                                                                   Foreground="#8A2F00"
+                                                                   FontWeight="SemiBold"
+                                                                   TextWrapping="Wrap" />
+                                                    </Border>
+
+                                                    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                                        <Grid IsVisible="{Binding HasSelectedJob}"
+                                                              ColumnDefinitions="Auto,*"
+                                                              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                                                              ColumnSpacing="10"
+                                                              RowSpacing="8">
+                                                            <TextBlock Text="{Binding Texts[JobName]}" Classes="label" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding SelectedJobName}" FontWeight="Bold" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="1" Text="{Binding Texts[SourceDirectory]}" Classes="label" />
+                                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedJobSource}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="2" Text="{Binding Texts[TargetDirectory]}" Classes="label" />
+                                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedJobTarget}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="3" Text="{Binding Texts[BackupTypeField]}" Classes="label" />
+                                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedJobTypeLabel}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="4" Text="{Binding Texts[StateLabel]}" Classes="label" />
+                                                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedJobStateLabel}" FontWeight="Bold" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="5" Text="{Binding Texts[ProgressLabel]}" Classes="label" />
+                                                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedJobProgressText}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="6" Text="{Binding Texts[LastUpdateLabel]}" Classes="label" />
+                                                            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedJobLastUpdateText}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="7" Text="{Binding Texts[CurrentSourceLabel]}" Classes="label" />
+                                                            <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedJobCurrentSource}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="8" Text="{Binding Texts[CurrentTargetLabel]}" Classes="label" />
+                                                            <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedJobCurrentDestination}" TextWrapping="Wrap" />
+
+                                                            <TextBlock Grid.Row="9" Text="{Binding Texts[RemainingFilesMetric]}" Classes="label" />
+                                                            <StackPanel Grid.Row="9" Grid.Column="1" Spacing="4">
+                                                                <TextBlock Text="{Binding SelectedJobRemainingFilesText}" TextWrapping="Wrap" />
+                                                                <TextBlock Text="{Binding Texts[TotalFilesMetric]}" Classes="caption" />
+                                                                <TextBlock Text="{Binding SelectedJobTotalFilesText}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+
+                                                            <TextBlock Grid.Row="10" Text="{Binding Texts[RemainingSizeMetric]}" Classes="label" />
+                                                            <StackPanel Grid.Row="10" Grid.Column="1" Spacing="4">
+                                                                <TextBlock Text="{Binding SelectedJobRemainingSizeText}" TextWrapping="Wrap" />
+                                                                <TextBlock Text="{Binding Texts[TotalSizeMetric]}" Classes="caption" />
+                                                                <TextBlock Text="{Binding SelectedJobTotalSizeText}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </ScrollViewer>
+                                                </Grid>
+
+                                                <Border Grid.Row="2" Background="#ECE9D8" BorderBrush="#ACA899" BorderThickness="0,1,0,0" Padding="10,6">
+                                                    <TextBlock Text="{Binding SelectedJobStatusNote}" Classes="caption" TextWrapping="Wrap" />
+                                                </Border>
+                                            </Grid>
+                                        </Border>
                                     </Grid>
 
                                     <StackPanel Orientation="Horizontal" Spacing="20">
