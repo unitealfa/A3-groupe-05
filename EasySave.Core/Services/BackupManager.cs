@@ -225,10 +225,29 @@ public sealed class BackupManager
 
     private async Task<IReadOnlyList<Task>> StartJobsInternalAsync(IEnumerable<BackupJob> jobs, CancellationToken cancellationToken)
     {
-        var tasks = new List<Task>();
-        foreach (var job in jobs)
+        var jobsToStart = jobs.ToList();
+        var useRegistrationWindow = jobsToStart.Count > 1;
+        if (useRegistrationWindow)
         {
-            tasks.Add(await StartJobInternalAsync(job, cancellationToken));
+            globalPriorityFileCoordinator.BeginRegistrationWindow(jobsToStart.Count);
+        }
+
+        var tasks = new List<Task>();
+        try
+        {
+            foreach (var job in jobsToStart)
+            {
+                tasks.Add(await StartJobInternalAsync(job, cancellationToken));
+            }
+        }
+        catch
+        {
+            if (useRegistrationWindow)
+            {
+                globalPriorityFileCoordinator.CancelRegistrationWindow();
+            }
+
+            throw;
         }
 
         return tasks;

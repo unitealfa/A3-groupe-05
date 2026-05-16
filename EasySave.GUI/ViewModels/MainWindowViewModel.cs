@@ -1057,11 +1057,7 @@ public partial class MainWindowViewModel : ViewModelBase
             await RefreshLogPreviewAsync();
             appliedSettingsSnapshot = nextSnapshot;
             IsSettingsDirty = false;
-            var feedbackKey = string.IsNullOrWhiteSpace(settings.CryptoSoftPath)
-                ? "SettingsEncryptionDisabledMessage"
-                : HasInvalidCryptoSoftPath(settings)
-                    ? "CryptoSoftPathInvalidButSaved"
-                : "SettingsChangesApplied";
+            var feedbackKey = GetSettingsFeedbackKey(settings);
             StatusMessage = Translate(feedbackKey);
             SettingsFeedbackMessage = Translate(feedbackKey);
             IsSettingsFeedbackSuccess = feedbackKey == "SettingsChangesApplied";
@@ -1437,7 +1433,15 @@ public partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            var content = await File.ReadAllTextAsync(targetFile);
+            await using var stream = new FileStream(
+                targetFile,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite,
+                bufferSize: 4096,
+                useAsync: true);
+            using var reader = new StreamReader(stream);
+            var content = await reader.ReadToEndAsync(cancellationToken: default);
             LogPreviewText = BuildPreview(content);
             LogPreviewInfo = string.Format(
                 CultureInfo.InvariantCulture,
@@ -1497,6 +1501,23 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         return !string.IsNullOrWhiteSpace(settings.CryptoSoftPath)
             && !CryptoSoftEncryptionService.CanResolveConfiguredPath(settings.CryptoSoftPath);
+    }
+
+    private static string GetSettingsFeedbackKey(AppSettings settings)
+    {
+        if (settings.LargeFileThresholdKo <= 1)
+        {
+            return "LargeFileThresholdVeryLowWarning";
+        }
+
+        if (string.IsNullOrWhiteSpace(settings.CryptoSoftPath))
+        {
+            return "SettingsEncryptionDisabledMessage";
+        }
+
+        return HasInvalidCryptoSoftPath(settings)
+            ? "CryptoSoftPathInvalidButSaved"
+            : "SettingsChangesApplied";
     }
 
     private static int ParseLargeFileThresholdKo(string rawValue)
@@ -2223,6 +2244,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (!hasLoadedStatesOnce)
         {
+            RememberCurrentTerminalStates(currentStates);
             hasLoadedStatesOnce = true;
             return;
         }
@@ -2329,6 +2351,20 @@ public partial class MainWindowViewModel : ViewModelBase
 
         lastReportedTerminalStates[state.Name] = (expectedState, state.LastActionTimestamp);
         return false;
+    }
+
+    private void RememberCurrentTerminalStates(IEnumerable<BackupState> states)
+    {
+        foreach (var state in states)
+        {
+            if (!string.Equals(state.State, "Finished", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(state.State, "Error", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            lastReportedTerminalStates[state.Name] = (state.State, state.LastActionTimestamp);
+        }
     }
 
     private static bool HasAtLeastOneSourceFile(string sourceSelection)
@@ -2493,9 +2529,17 @@ public partial class MainWindowViewModel : ViewModelBase
                     state.RemainingFiles,
                     state.TotalFilesSize,
                     state.RemainingSize,
+                    FormatExactStateTimestamp(state.LastActionTimestamp),
                     currentSource,
                     currentDestination);
             }));
+    }
+
+    private static string FormatExactStateTimestamp(DateTime timestamp)
+    {
+        return timestamp == default
+            ? "-"
+            : timestamp.ToString("dd/MM/yyyy HH:mm:ss.fff", CultureInfo.CurrentCulture);
     }
 
     private void NotifySelectionProperties()
@@ -2852,6 +2896,7 @@ public sealed record StateListRow(
     int RemainingFiles,
     long TotalFilesSize,
     long RemainingSize,
+    string LastUpdateExact,
     string CurrentSourceFilePath,
     string CurrentDestinationFilePath);
 

@@ -32,8 +32,19 @@ public sealed class XmlLoggerService : ILoggerService
             var document = new XDocument(
                 new XElement("LogEntries", entries.Select(CreateLogEntryElement)));
 
-            await using var stream = File.Create(logFilePath);
-            await document.SaveAsync(stream, SaveOptions.None, cancellationToken);
+            var tempFilePath = $"{logFilePath}.{Guid.NewGuid():N}.tmp";
+            await using (var stream = new FileStream(
+                             tempFilePath,
+                             FileMode.CreateNew,
+                             FileAccess.Write,
+                             FileShare.None,
+                             bufferSize: 4096,
+                             useAsync: true))
+            {
+                await document.SaveAsync(stream, SaveOptions.None, cancellationToken);
+            }
+
+            File.Move(tempFilePath, logFilePath, overwrite: true);
         }
         finally
         {
@@ -63,7 +74,13 @@ public sealed class XmlLoggerService : ILoggerService
             return [];
         }
 
-        await using var stream = File.OpenRead(filePath);
+        await using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite,
+            bufferSize: 4096,
+            useAsync: true);
         var document = await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken);
 
         return document.Root?

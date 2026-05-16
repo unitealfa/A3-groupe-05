@@ -10,6 +10,7 @@ public sealed class StateManager
         WriteIndented = true
     };
 
+    // Verrouille la lecture ou l'ecriture pour une seule action a la fois.
     private readonly SemaphoreSlim writeLock = new(1, 1);
     private readonly string stateFilePath;
 
@@ -22,6 +23,7 @@ public sealed class StateManager
     {
         ArgumentNullException.ThrowIfNull(state);
 
+        // Attend si une autre ecriture est deja en cours.
         await writeLock.WaitAsync(cancellationToken);
         try
         {
@@ -136,6 +138,7 @@ public sealed class StateManager
         try
         {
             var directoryPath = Path.GetDirectoryName(stateFilePath)!;
+            // Cree un fichier temporaire pour ecrire le nouveau contenu JSON.
             var tempFilePath = Path.Combine(directoryPath, $"{Path.GetFileName(stateFilePath)}.{Guid.NewGuid():N}.tmp");
             Directory.CreateDirectory(directoryPath);
 
@@ -150,6 +153,7 @@ public sealed class StateManager
                 await JsonSerializer.SerializeAsync(stream, states, JsonOptions, cancellationToken);
             }
 
+            // Remplace ensuite state.json par le fichier temporaire termine.
             File.Move(tempFilePath, stateFilePath, overwrite: true);
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)

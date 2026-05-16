@@ -139,6 +139,7 @@
   "LargeFileThresholdNegative": "大容量ファイルしきい値は負の値にできません。",
   "LargeFileThresholdRequired": "大容量ファイルしきい値は必須です。既定値の 20 MB（20000 Ko）を使用してください。",
   "LargeFileThresholdMinimum": "大容量ファイルしきい値は最低 1 Ko である必要があります。",
+  "LargeFileThresholdVeryLowWarning": "大容量ファイルしきい値が 1 Ko の場合、ほぼすべてのファイルが大容量として扱われます。複数実行では一度に 1 ファイルだけ進み、残りサイズは各ファイルの終了時に更新されます。",
   "BackupJobIndexOutOfRange": "バックアップジョブ番号が範囲外です。",
   "DashboardTitle": "EasySave ダッシュボード",
   "DashboardSubtitle": "ジョブ、現在の状態、暗号化設定、業務ソフトブロック規則の概要を表示します。",

@@ -33,8 +33,19 @@ public sealed class JsonLoggerService : ILoggerService
             var entries = await ReadEntriesAsync(logFilePath, cancellationToken);
             entries.Add(entry);
 
-            await using var stream = File.Create(logFilePath);
-            await JsonSerializer.SerializeAsync(stream, entries, JsonOptions, cancellationToken);
+            var tempFilePath = $"{logFilePath}.{Guid.NewGuid():N}.tmp";
+            await using (var stream = new FileStream(
+                             tempFilePath,
+                             FileMode.CreateNew,
+                             FileAccess.Write,
+                             FileShare.None,
+                             bufferSize: 4096,
+                             useAsync: true))
+            {
+                await JsonSerializer.SerializeAsync(stream, entries, JsonOptions, cancellationToken);
+            }
+
+            File.Move(tempFilePath, logFilePath, overwrite: true);
         }
         finally
         {
@@ -54,7 +65,13 @@ public sealed class JsonLoggerService : ILoggerService
             return [];
         }
 
-        await using var stream = File.OpenRead(filePath);
+        await using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite,
+            bufferSize: 4096,
+            useAsync: true);
         return await JsonSerializer.DeserializeAsync<List<LogEntry>>(stream, JsonOptions, cancellationToken) ?? [];
     }
 }

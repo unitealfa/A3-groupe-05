@@ -2,5 +2,10 @@ namespace EasySave.Core.Services;
 
 public interface IFileTransferService
 {
-    Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default);
+    Task CopyAsync(
+        string sourceFilePath,
+        string destinationFilePath,
+        bool overwrite,
+        Func<long, Task>? progressCallback = null,
+        CancellationToken cancellationToken = default);
 }

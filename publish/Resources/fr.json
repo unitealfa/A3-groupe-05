@@ -130,6 +130,7 @@
   "LargeFileThresholdNegative": "Le seuil des gros fichiers ne peut pas être négatif.",
   "LargeFileThresholdRequired": "Le seuil des gros fichiers est obligatoire. Utilisez la valeur par défaut de 20 MB, soit 20000 Ko.",
   "LargeFileThresholdMinimum": "Le seuil des gros fichiers doit être d'au moins 1 Ko.",
+  "LargeFileThresholdVeryLowWarning": "Avec un seuil gros fichiers de 1 Ko, presque tous les fichiers seront consideres comme volumineux. En execution multiple, un seul fichier avancera a la fois et la taille restante se mettra a jour a la fin de chaque fichier.",
   "BackupJobIndexOutOfRange": "L'index du travail de sauvegarde est hors limite.",
   "DashboardTitle": "Tableau de bord EasySave",
   "DashboardSubtitle": "Vue synthétique des travaux, de l'état courant, du chiffrement et des règles de blocage métier.",

@@ -342,6 +342,12 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.Equal("Error", entry.Status);
         Assert.True(entry.TransferTimeMs < 0);
         Assert.True(entry.EncryptionTimeMs < 0);
+
+        var states = await ReadStateEntriesAsync(statePath);
+        var state = Assert.Single(states);
+        Assert.Equal("Error", state.State);
+        Assert.EndsWith("broken.txt", state.CurrentSourceFilePath, StringComparison.OrdinalIgnoreCase);
+        Assert.EndsWith("broken.txt", state.CurrentDestinationFilePath, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -645,6 +651,66 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.True(File.Exists(Path.Combine(targetRoot, "priority", "urgent.prio")));
         Assert.True(File.Exists(Path.Combine(targetRoot, "regular", "later.txt")));
         Assert.Equal(1, encryptionService.MaxConcurrentCalls);
+    }
+
+    [Fact]
+    public async Task ExecuteAllJobsDoesNotBlockNonPriorityFilesWhenPriorityJobFails()
+    {
+        var prioritySource = Path.Combine(testRoot, "source-priority-failing");
+        var regularSource = Path.Combine(testRoot, "source-regular-after-priority");
+        var targetRoot = Path.Combine(testRoot, "target-priority-failing");
+        var logDirectory = Path.Combine(testRoot, "logs-priority-failing");
+        var statePath = Path.Combine(testRoot, "state-priority-failing", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-priority-failing", "settings.json");
+
+        Directory.CreateDirectory(prioritySource);
+        Directory.CreateDirectory(regularSource);
+
+        var failingPriorityFilePath = Path.Combine(prioritySource, "broken.png");
+        await File.WriteAllTextAsync(failingPriorityFilePath, "priority-broken");
+        await File.WriteAllTextAsync(Path.Combine(prioritySource, "second.png"), "priority-second");
+        await File.WriteAllTextAsync(Path.Combine(regularSource, "later.txt"), "regular");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            PriorityExtensions = [".png"]
+        });
+
+        var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-priority-failing", "jobs.json"));
+        var jobService = new BackupJobService(repository);
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Priority Failing Job",
+            SourceDirectory = prioritySource,
+            TargetDirectory = Path.Combine(targetRoot, "priority"),
+            Type = BackupType.Complete
+        });
+        await jobService.AddJobAsync(new BackupJob
+        {
+            Name = "Regular After Failure",
+            SourceDirectory = regularSource,
+            TargetDirectory = Path.Combine(targetRoot, "regular"),
+            Type = BackupType.Complete
+        });
+
+        var transferService = new FailingForSpecificFileTransferService(failingPriorityFilePath);
+        var manager = new BackupManager(
+            jobService,
+            new StateManager(statePath),
+            _ => new JsonLoggerService(logDirectory),
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0),
+            transferService);
+
+        await manager.ExecuteAllJobsAsync();
+
+        Assert.True(File.Exists(Path.Combine(targetRoot, "regular", "later.txt")));
+
+        var states = await ReadStateEntriesAsync(statePath);
+        Assert.Contains(states, state => state.Name == "Priority Failing Job" && state.State == "Error");
+        Assert.Contains(states, state => state.Name == "Regular After Failure" && state.State == "Finished");
     }
 
     [Fact]
@@ -1128,7 +1194,7 @@ public sealed class BackupExecutionTests : IDisposable
 
         public int MaxConcurrentLargeTransfers => maxConcurrentLargeTransfers;
 
-        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, Func<long, Task>? progressCallback = null, CancellationToken cancellationToken = default)
         {
             var isLargeFile = isLargeFilePredicate(sourceFilePath);
             var activeTransfers = Interlocked.Increment(ref currentConcurrentTransfers);
@@ -1145,6 +1211,10 @@ public sealed class BackupExecutionTests : IDisposable
                 await Task.Delay(delay, cancellationToken);
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath)!);
                 await File.WriteAllTextAsync(destinationFilePath, await File.ReadAllTextAsync(sourceFilePath, cancellationToken), cancellationToken);
+                if (progressCallback is not null)
+                {
+                    await progressCallback(new FileInfo(sourceFilePath).Length);
+                }
             }
             finally
             {
@@ -1177,7 +1247,7 @@ public sealed class BackupExecutionTests : IDisposable
 
         public TaskCompletionSource FirstTransferStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, Func<long, Task>? progressCallback = null, CancellationToken cancellationToken = default)
         {
             if (Interlocked.Increment(ref transferCount) == 1)
             {
@@ -1190,14 +1260,36 @@ public sealed class BackupExecutionTests : IDisposable
             await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
             await using var destinationStream = new FileStream(destinationFilePath, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+            if (progressCallback is not null)
+            {
+                await progressCallback(sourceStream.Length);
+            }
         }
     }
 
     private sealed class FailingTransferService : IFileTransferService
     {
-        public Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        public Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, Func<long, Task>? progressCallback = null, CancellationToken cancellationToken = default)
         {
             throw new IOException("Simulated copy failure.");
+        }
+    }
+
+    private sealed class FailingForSpecificFileTransferService(string failingSourceFilePath) : IFileTransferService
+    {
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, Func<long, Task>? progressCallback = null, CancellationToken cancellationToken = default)
+        {
+            if (string.Equals(sourceFilePath, failingSourceFilePath, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IOException("Simulated priority copy failure.");
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationFilePath)!);
+            await File.WriteAllTextAsync(destinationFilePath, await File.ReadAllTextAsync(sourceFilePath, cancellationToken), cancellationToken);
+            if (progressCallback is not null)
+            {
+                await progressCallback(new FileInfo(sourceFilePath).Length);
+            }
         }
     }
 
@@ -1206,7 +1298,7 @@ public sealed class BackupExecutionTests : IDisposable
         private readonly TaskCompletionSource startedTransfersCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private int transferCount;
 
-        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, CancellationToken cancellationToken = default)
+        public async Task CopyAsync(string sourceFilePath, string destinationFilePath, bool overwrite, Func<long, Task>? progressCallback = null, CancellationToken cancellationToken = default)
         {
             var startedTransfers = Interlocked.Increment(ref transferCount);
             if (startedTransfers >= 2)
@@ -1220,6 +1312,10 @@ public sealed class BackupExecutionTests : IDisposable
             await using var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
             await using var destinationStream = new FileStream(destinationFilePath, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true);
             await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+            if (progressCallback is not null)
+            {
+                await progressCallback(sourceStream.Length);
+            }
         }
 
         public Task WaitForTransfersStartedAsync(int minimumTransfers, TimeSpan timeout)

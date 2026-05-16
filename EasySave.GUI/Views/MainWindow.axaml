@@ -231,7 +231,7 @@
                                     <Border Grid.Row="3" Margin="10" Background="White" BorderBrush="#716F64" BorderThickness="1" Padding="0">
                                         <Grid RowDefinitions="Auto,*">
                                             <Border Background="#F0F0ED" BorderBrush="#ACA899" BorderThickness="0,0,0,1" Padding="10,8">
-                                                <Grid ColumnDefinitions="36,130,180,180,90,120,90,210" ColumnSpacing="8">
+                                                <Grid ColumnDefinitions="36,1.1*,1.5*,1.5*,0.8*,1*,0.9*,1.8*" ColumnSpacing="8">
                                                     <TextBlock Text="" />
                                                     <TextBlock Grid.Column="1" Text="{Binding Texts[ColumnName]}" Classes="label" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Grid.Column="2" Text="{Binding Texts[ColumnSource]}" Classes="label" TextTrimming="CharacterEllipsis" />
@@ -248,7 +248,7 @@
                                                      Classes="xp-list"
                                                      Background="White"
                                                      BorderThickness="0"
-                                             Height="320"
+                                                     MinHeight="320"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                              ScrollViewer.VerticalScrollBarVisibility="Visible"
                                              ItemsSource="{Binding JobListRows}"
@@ -256,14 +256,14 @@
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
                                                         <Border Classes="xp-row" Padding="10,8">
-                                                            <Grid ColumnDefinitions="36,130,180,180,90,120,90,210" ColumnSpacing="8">
+                                                            <Grid ColumnDefinitions="36,1.1*,1.5*,1.5*,0.8*,1*,0.9*,1.8*" ColumnSpacing="8">
                                                                 <CheckBox IsChecked="{Binding IsMarked, Mode=TwoWay}"
                                                                           Click="JobSelectionCheckBox_Changed"
                                                                           VerticalAlignment="Top"
                                                                           HorizontalAlignment="Center" />
                                                                 <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="Bold" Foreground="#0043B0" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                                                <TextBlock Grid.Column="2" Text="{Binding Source}" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                                                                <TextBlock Grid.Column="3" Text="{Binding Destination}" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                                                <TextBlock Grid.Column="2" Text="{Binding Source}" TextWrapping="Wrap" MaxLines="2" />
+                                                                <TextBlock Grid.Column="3" Text="{Binding Destination}" TextWrapping="Wrap" MaxLines="2" />
                                                                 <Border Grid.Column="4" Classes="xp-badge">
                                                                     <TextBlock Text="{Binding Type}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                                                 </Border>
@@ -1064,15 +1064,16 @@
                                         </Grid>
 
                                         <Border Classes="xp-card" Padding="10">
-                                            <Grid ColumnDefinitions="1.15*,0.8*,0.8*,0.8*,1*,1*,1.5*,1.5*" ColumnSpacing="10">
+                                            <Grid ColumnDefinitions="1.05*,0.75*,0.8*,0.75*,0.9*,0.9*,1.15*,1.35*,1.35*" ColumnSpacing="10">
                                                 <TextBlock Text="{Binding Texts[ColumnName]}" Classes="label" />
                                                 <TextBlock Grid.Column="1" Text="{Binding Texts[StateLabel]}" Classes="label" />
                                                 <TextBlock Grid.Column="2" Text="{Binding Texts[ProgressLabel]}" Classes="label" />
                                                 <TextBlock Grid.Column="3" Text="{Binding Texts[RemainingFilesMetric]}" Classes="label" />
                                                 <TextBlock Grid.Column="4" Text="{Binding Texts[TotalSizeMetric]}" Classes="label" />
                                                 <TextBlock Grid.Column="5" Text="{Binding Texts[RemainingSizeMetric]}" Classes="label" />
-                                                <TextBlock Grid.Column="6" Text="{Binding Texts[CurrentSourceLabel]}" Classes="label" />
-                                                <TextBlock Grid.Column="7" Text="{Binding Texts[CurrentTargetLabel]}" Classes="label" />
+                                                <TextBlock Grid.Column="6" Text="{Binding Texts[LastUpdateLabel]}" Classes="label" />
+                                                <TextBlock Grid.Column="7" Text="{Binding Texts[CurrentSourceLabel]}" Classes="label" />
+                                                <TextBlock Grid.Column="8" Text="{Binding Texts[CurrentTargetLabel]}" Classes="label" />
                                             </Grid>
                                         </Border>
 
@@ -1080,7 +1081,7 @@
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
                                                     <Border Classes="xp-row" Padding="10,8">
-                                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="1.15*,0.8*,0.8*,0.8*,1*,1*,1.5*,1.5*" ColumnSpacing="10" RowSpacing="6">
+                                                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="1.05*,0.75*,0.8*,0.75*,0.9*,0.9*,1.15*,1.35*,1.35*" ColumnSpacing="10" RowSpacing="6">
                                                             <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#0043B0" />
                                                             <TextBlock Grid.Column="1" Text="{Binding State}" FontWeight="Bold" />
                                                             <StackPanel Grid.Column="2" Spacing="3">
@@ -1090,8 +1091,9 @@
                                                             <TextBlock Grid.Column="3" Text="{Binding RemainingFiles}" />
                                                             <TextBlock Grid.Column="4" Text="{Binding TotalFilesSize}" />
                                                             <TextBlock Grid.Column="5" Text="{Binding RemainingSize}" />
-                                                            <TextBlock Grid.Column="6" Text="{Binding CurrentSourceFilePath}" TextWrapping="Wrap" />
-                                                            <TextBlock Grid.Column="7" Text="{Binding CurrentDestinationFilePath}" TextWrapping="Wrap" />
+                                                            <TextBlock Grid.Column="6" Text="{Binding LastUpdateExact}" TextWrapping="Wrap" />
+                                                            <TextBlock Grid.Column="7" Text="{Binding CurrentSourceFilePath}" TextWrapping="Wrap" />
+                                                            <TextBlock Grid.Column="8" Text="{Binding CurrentDestinationFilePath}" TextWrapping="Wrap" />
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>

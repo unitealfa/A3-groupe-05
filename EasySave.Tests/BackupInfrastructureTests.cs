@@ -460,6 +460,36 @@ public sealed class BackupInfrastructureTests : IDisposable
         Assert.True(File.Exists(logPath));
     }
 
+    [Fact]
+    public async Task FileSystemFileTransferServiceOverwritesReadonlyDestinationFile()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "readonly-source");
+        var targetDirectory = Path.Combine(testRoot, "readonly-target");
+        Directory.CreateDirectory(sourceDirectory);
+        Directory.CreateDirectory(targetDirectory);
+
+        var sourceFilePath = Path.Combine(sourceDirectory, "icon.ico");
+        var destinationFilePath = Path.Combine(targetDirectory, "icon.ico");
+        await File.WriteAllTextAsync(sourceFilePath, "new-content");
+        await File.WriteAllTextAsync(destinationFilePath, "old-content");
+        File.SetAttributes(destinationFilePath, FileAttributes.ReadOnly);
+
+        try
+        {
+            var transferService = new FileSystemFileTransferService();
+            await transferService.CopyAsync(sourceFilePath, destinationFilePath, overwrite: true);
+
+            Assert.Equal("new-content", await File.ReadAllTextAsync(destinationFilePath));
+        }
+        finally
+        {
+            if (File.Exists(destinationFilePath))
+            {
+                File.SetAttributes(destinationFilePath, FileAttributes.Normal);
+            }
+        }
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(testRoot))

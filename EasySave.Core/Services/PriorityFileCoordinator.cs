@@ -4,7 +4,54 @@ public sealed class PriorityFileCoordinator
 {
     private readonly object syncLock = new();
     private TaskCompletionSource priorityDrainCompletionSource = CreateCompletedSource();
+    private TaskCompletionSource registrationCompletionSource = CreateCompletedSource();
     private int pendingPriorityFiles;
+    private int pendingRegistrationJobs;
+    private int pendingPriorityJobs;
+    private TaskCompletionSource priorityJobsCompletionSource = CreateCompletedSource();
+
+    public void BeginRegistrationWindow(int jobCount)
+    {
+        if (jobCount <= 0)
+        {
+            return;
+        }
+
+        lock (syncLock)
+        {
+            pendingRegistrationJobs += jobCount;
+            if (pendingRegistrationJobs > 0)
+            {
+                registrationCompletionSource = CreatePendingSource();
+            }
+        }
+    }
+
+    public void CompleteRegistrationForJob()
+    {
+        lock (syncLock)
+        {
+            if (pendingRegistrationJobs <= 0)
+            {
+                return;
+            }
+
+            pendingRegistrationJobs--;
+            if (pendingRegistrationJobs == 0)
+            {
+                registrationCompletionSource.TrySetResult();
+            }
+        }
+    }
+
+    public void CancelRegistrationWindow()
+    {
+        lock (syncLock)
+        {
+            pendingRegistrationJobs = 0;
+            registrationCompletionSource.TrySetResult();
+        }
+    }
 
     public void RegisterPriorityFiles(int priorityFileCount)
     {
@@ -24,21 +71,55 @@ public sealed class PriorityFileCoordinator
         }
     }
 
-    public async Task WaitUntilNonPriorityTransfersAllowedAsync(CancellationToken cancellationToken)
+    public void RegisterPriorityJob()
     {
-        Task waitTask;
-
         lock (syncLock)
         {
-            if (pendingPriorityFiles == 0)
+            if (pendingPriorityJobs == 0)
+            {
+                priorityJobsCompletionSource = CreatePendingSource();
+            }
+
+            pendingPriorityJobs++;
+        }
+    }
+
+    public void CompletePriorityJob()
+    {
+        lock (syncLock)
+        {
+            if (pendingPriorityJobs <= 0)
             {
                 return;
             }
 
-            waitTask = priorityDrainCompletionSource.Task;
+            pendingPriorityJobs--;
+            if (pendingPriorityJobs == 0)
+            {
+                priorityJobsCompletionSource.TrySetResult();
+            }
+        }
+    }
+
+    public async Task WaitUntilNonPriorityTransfersAllowedAsync(CancellationToken cancellationToken)
+    {
+        Task priorityWaitTask;
+        Task registrationWaitTask;
+        Task priorityJobsWaitTask;
+
+        lock (syncLock)
+        {
+            if (pendingPriorityFiles == 0 && pendingRegistrationJobs == 0 && pendingPriorityJobs == 0)
+            {
+                return;
+            }
+
+            priorityWaitTask = priorityDrainCompletionSource.Task;
+            registrationWaitTask = registrationCompletionSource.Task;
+            priorityJobsWaitTask = priorityJobsCompletionSource.Task;
         }
 
-        await waitTask.WaitAsync(cancellationToken);
+        await Task.WhenAll(priorityWaitTask, registrationWaitTask, priorityJobsWaitTask).WaitAsync(cancellationToken);
     }
 
     public void CompletePriorityFile()

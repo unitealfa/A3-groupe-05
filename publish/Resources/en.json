@@ -139,6 +139,7 @@
   "LargeFileThresholdNegative": "The large file threshold cannot be negative.",
   "LargeFileThresholdRequired": "The large file threshold is required. Use the default value of 20 MB, which is 20000 Ko.",
   "LargeFileThresholdMinimum": "The large file threshold must be at least 1 Ko.",
+  "LargeFileThresholdVeryLowWarning": "With a large file threshold of 1 Ko, almost all files will be treated as large. In multi-run, only one file will progress at a time and the remaining size will update at the end of each file.",
   "BackupJobIndexOutOfRange": "Backup job index is out of range.",
   "DashboardTitle": "EasySave dashboard",
   "DashboardSubtitle": "High-level view of jobs, current state, encryption settings and business software blocking rules.",
