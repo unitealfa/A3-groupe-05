@@ -35,6 +35,13 @@ public sealed class CryptoSoftEncryptionService : IFileEncryptionService
         }
     }
 
+    public static bool CanResolveConfiguredPath(string configuredPath)
+    {
+        var targetPath = ResolveTargetPath(configuredPath);
+        return !string.IsNullOrWhiteSpace(targetPath) &&
+               (File.Exists(targetPath) || Directory.Exists(targetPath));
+    }
+
     private static async Task<long> EncryptWithRetryAsync(string targetPath, string filePath, string key, CancellationToken cancellationToken)
     {
         var deadline = DateTime.UtcNow.Add(BusyRetryTimeout);

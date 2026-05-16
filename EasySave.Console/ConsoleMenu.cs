@@ -391,6 +391,7 @@ public sealed class ConsoleMenu
             ArgumentException when exception.Message == "The backup type is invalid." => languageSelector.Text("BackupTypeInvalid"),
             InvalidOperationException when exception.Message.StartsWith("Backup job not found:", StringComparison.Ordinal) => languageSelector.Text("BackupJobNotFound"),
             InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => languageSelector.Text("BackupNameAlreadyExists"),
+            InvalidOperationException when exception.Message.StartsWith("CryptoSoft path not found:", StringComparison.Ordinal) => FormatMissingPathMessage("CryptoSoftPathNotFound", exception.Message, "CryptoSoft path not found:"),
             InvalidOperationException when exception.Message == "The backup target directory cannot be the same as the source directory." => languageSelector.Text("SourceTargetSameDirectory"),
             InvalidOperationException when exception.Message == "The backup target directory cannot be inside the source directory." => languageSelector.Text("TargetInsideSourceDirectory"),
             InvalidOperationException when exception.Message == "The backup target directory cannot contain the source directory." => languageSelector.Text("TargetContainsSourceDirectory"),

@@ -406,7 +406,8 @@
 
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="{Binding Texts[JobName]}" Classes="label" />
-                                            <TextBox Text="{Binding JobName, UpdateSourceTrigger=PropertyChanged}" />
+                                            <TextBox Text="{Binding JobName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" />
+                                            <TextBlock Text="{Binding JobNameLengthHint}" Classes="caption" TextWrapping="Wrap" />
                                         </StackPanel>
 
                                         <StackPanel Spacing="4">
@@ -531,12 +532,9 @@
                                         </Grid>
                                     </Border>
 
-                                    <StackPanel Grid.Row="1" Margin="16" Spacing="14">
-                                        <TextBlock Text="{Binding JobFormLeaveConfirmationText}" TextWrapping="Wrap" />
+                                        <StackPanel Grid.Row="1" Margin="16" Spacing="14">
+                                            <TextBlock Text="{Binding JobFormLeaveConfirmationText}" TextWrapping="Wrap" />
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                                            <Button Content="{Binding Texts[JobFormSaveAndLeaveButton]}"
-                                                    Command="{Binding ConfirmSaveJobFormAndLeaveCommand}"
-                                                    Classes="xp-primary" />
                                             <Button Content="{Binding Texts[JobFormDiscardAndLeaveButton]}"
                                                     Command="{Binding ConfirmDiscardJobFormAndLeaveCommand}" />
                                             <Button Content="{Binding Texts[JobFormStayButton]}"
@@ -589,6 +587,59 @@
                             </Border>
                         </Grid>
                     </Border>
+                    <Border Background="#66000000"
+                            IsVisible="{Binding IsDifferentialPreviewVisible}">
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+                            <Border Width="620" Classes="xp-card" Padding="0" BorderBrush="#0058E3" BorderThickness="3">
+                                <Grid RowDefinitions="Auto,*" Background="#ECE9D8">
+                                    <Border Background="#0058E3" Padding="6,5">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                                <TextBlock Text=">" Foreground="White" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding DifferentialPreviewTitle}" Foreground="White" FontWeight="Bold" FontSize="13" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1"
+                                                    Width="24"
+                                                    Height="24"
+                                                    Content="Ãƒâ€”"
+                                                    Foreground="White"
+                                                    FontSize="14"
+                                                    FontWeight="Bold"
+                                                    Padding="0"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    Background="#E81123"
+                                                    BorderBrush="#FFFFFF66"
+                                                    BorderThickness="1"
+                                                    Command="{Binding CancelDifferentialPreviewCommand}" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Grid.Row="1" Margin="16" Spacing="14">
+                                        <TextBlock Text="{Binding DifferentialPreviewMessage}" TextWrapping="Wrap" />
+                                        <Border Classes="xp-inset" Padding="10" MinHeight="160" MaxHeight="260">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <TextBlock Text="{Binding DifferentialPreviewFilesText}"
+                                                           TextWrapping="Wrap"
+                                                           IsVisible="{Binding HasDifferentialPreviewFiles}" />
+                                            </ScrollViewer>
+                                        </Border>
+                                        <TextBlock Text="{Binding DifferentialPreviewEmptyText}"
+                                                   FontStyle="Italic"
+                                                   IsVisible="{Binding HasNoDifferentialPreviewFiles}" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                            <Button Content="{Binding Texts[DifferentialPreviewStartButton]}"
+                                                    Command="{Binding ConfirmDifferentialPreviewCommand}"
+                                                    IsEnabled="{Binding CanConfirmDifferentialPreview}"
+                                                    Classes="xp-primary" />
+                                            <Button Content="{Binding Texts[DifferentialPreviewCancelButton]}"
+                                                    Command="{Binding CancelDifferentialPreviewCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
                     </Grid>
                 </TabItem>
 
@@ -632,7 +683,8 @@
 
                                         <StackPanel Spacing="4">
                                             <TextBlock Text="{Binding Texts[JobName]}" Classes="label" />
-                                            <TextBox Text="{Binding JobName}" />
+                                            <TextBox Text="{Binding JobName}" MaxLength="100" />
+                                            <TextBlock Text="{Binding JobNameLengthHint}" Classes="caption" TextWrapping="Wrap" />
                                         </StackPanel>
 
                                         <StackPanel Spacing="4">
@@ -1070,6 +1122,12 @@
                         <StackPanel Spacing="16" IsVisible="{Binding !IsSettingsGuideVisible}">
                             <Border Classes="xp-success"
                                     IsVisible="{Binding IsSettingsFeedbackSuccess}">
+                                <TextBlock Text="{Binding SettingsFeedbackMessage}"
+                                           FontWeight="Bold"
+                                           TextWrapping="Wrap" />
+                            </Border>
+                            <Border Classes="xp-error"
+                                    IsVisible="{Binding IsSettingsFeedbackError}">
                                 <TextBlock Text="{Binding SettingsFeedbackMessage}"
                                            FontWeight="Bold"
                                            TextWrapping="Wrap" />

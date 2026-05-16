@@ -26,13 +26,17 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly IBusinessSoftwareDetector businessSoftwareDetector;
     private readonly CancellationTokenSource runtimeRefreshCancellationTokenSource = new();
     private readonly List<BackupJob> selectedJobs = [];
+    private readonly Dictionary<string, (string State, DateTime Timestamp)> lastReportedTerminalStates = new(StringComparer.OrdinalIgnoreCase);
     private Exception? startupException;
     private bool isRefreshingStates;
+    private bool hasLoadedStatesOnce;
     private bool suppressJobFormDirtyTracking;
     private bool suppressSettingsDirtyTracking;
     private bool suppressSectionChangeGuard;
     private string appliedJobFormSnapshot = string.Empty;
     private string appliedSettingsSnapshot = string.Empty;
+    private BackupJob? pendingDifferentialPreviewJob;
+    private readonly Queue<DifferentialPreviewRequest> pendingDifferentialPreviewQueue = new();
     private int? pendingSectionIndexAfterSettingsConfirmation;
     private int previousSectionIndex;
 
@@ -85,7 +89,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string businessSoftwareProcessesText = "calc";
 
     [ObservableProperty]
-    private string largeFileThresholdKoText = "1";
+    private string largeFileThresholdKoText = "20000";
 
     [ObservableProperty]
     private string cryptoSoftPath = Path.Combine(AppPaths.BaseDirectory, "CryptoSoft");
@@ -157,6 +161,18 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool isMultiRunConfirmationVisible;
 
     [ObservableProperty]
+    private bool isDifferentialPreviewVisible;
+
+    [ObservableProperty]
+    private string differentialPreviewJobName = string.Empty;
+
+    [ObservableProperty]
+    private string differentialPreviewFilesText = string.Empty;
+
+    [ObservableProperty]
+    private int differentialPreviewFileCount;
+
+    [ObservableProperty]
     private string settingsFeedbackMessage = string.Empty;
 
     [ObservableProperty]
@@ -225,6 +241,8 @@ public partial class MainWindowViewModel : ViewModelBase
         PrepareMultiRunCommand = new RelayCommand(PrepareMultiRun);
         ConfirmMultiRunCommand = new AsyncRelayCommand(ConfirmMultiRunAsync);
         CancelMultiRunCommand = new RelayCommand(CancelMultiRun);
+        ConfirmDifferentialPreviewCommand = new AsyncRelayCommand(ConfirmDifferentialPreviewAsync);
+        CancelDifferentialPreviewCommand = new RelayCommand(CancelDifferentialPreview);
         RefreshLocalizedOptions();
     }
 
@@ -292,6 +310,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IRelayCommand CancelMultiRunCommand { get; }
 
+    public IAsyncRelayCommand ConfirmDifferentialPreviewCommand { get; }
+
+    public IRelayCommand CancelDifferentialPreviewCommand { get; }
+
     public int TotalJobsCount => Jobs.Count;
 
     public int ActiveStatesCount => States.Count(state => string.Equals(state.State, "Active", StringComparison.OrdinalIgnoreCase));
@@ -333,7 +355,7 @@ public partial class MainWindowViewModel : ViewModelBase
         : PriorityExtensionsText;
 
     public string LargeFileThresholdSummary => string.IsNullOrWhiteSpace(LargeFileThresholdKoText)
-        ? "0"
+        ? "20000"
         : LargeFileThresholdKoText;
 
     public string BusinessSoftwareSummary => string.IsNullOrWhiteSpace(BusinessSoftwareProcessesText)
@@ -540,6 +562,11 @@ public partial class MainWindowViewModel : ViewModelBase
         ? Translate("EditJobPageSubtitle")
         : Translate("CreatePageSubtitle");
 
+    public string JobNameLengthHint => string.Format(
+        CultureInfo.InvariantCulture,
+        Translate("JobNameLengthHint"),
+        BackupJobService.MaxBackupJobNameLength);
+
     public string SaveJobButtonText => IsEditingJob
         ? Translate("SaveJobChanges")
         : Translate("CreateJob");
@@ -549,6 +576,10 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool HasStatusMessage =>
         !string.IsNullOrWhiteSpace(StatusMessage) &&
         !string.Equals(StatusMessage, Translate("StatusReady"), StringComparison.Ordinal);
+
+    public bool HasSettingsFeedbackMessage => !string.IsNullOrWhiteSpace(SettingsFeedbackMessage);
+
+    public bool IsSettingsFeedbackError => HasSettingsFeedbackMessage && !IsSettingsFeedbackSuccess;
 
     public bool HasJobsPageStatusMessage =>
         HasStatusMessage &&
@@ -568,15 +599,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool CanStopAllJobs => Jobs.Any(CanStopJob);
 
-    public bool CanPauseSelectedJob => GetSelectedJobsOrFallback().Any(IsRunningJob);
+    public bool CanPauseSelectedJob => GetSelectedJobsOrFallback().Any(IsActivelyRunningJob);
 
-    public bool CanPauseAllJobs => Jobs.Any(IsRunningJob);
+    public bool CanPauseAllJobs => Jobs.Any(IsActivelyRunningJob);
 
-    public bool CanRunSelectedJob => !HasRunningJobs && GetSelectedJobsOrFallback().Count > 0;
+    public bool CanRunSelectedJob => GetSelectedJobsOrFallback().Any(IsPausedJob) || (!HasActiveRunningJobs && GetSelectedJobsOrFallback().Count > 0);
 
     public bool CanRunAllJobs => !HasRunningJobs && Jobs.Count > 0;
 
     public bool HasRunningJobs => Jobs.Any(IsRunningJob);
+
+    public bool HasActiveRunningJobs => Jobs.Any(IsActivelyRunningJob);
 
     public string DeleteConfirmationText => string.Format(
         CultureInfo.InvariantCulture,
@@ -591,6 +624,22 @@ public partial class MainWindowViewModel : ViewModelBase
         CultureInfo.InvariantCulture,
         Translate("RunSelectedJobsConfirmMessage"),
         string.Join(", ", selectedJobs.Select(job => job.Name)));
+
+    public string DifferentialPreviewTitle => Translate("DifferentialPreviewTitle");
+
+    public string DifferentialPreviewMessage => string.Format(
+        CultureInfo.InvariantCulture,
+        Translate("DifferentialPreviewMessage"),
+        DifferentialPreviewJobName,
+        DifferentialPreviewFileCount);
+
+    public string DifferentialPreviewEmptyText => Translate("DifferentialPreviewEmpty");
+
+    public bool HasDifferentialPreviewFiles => DifferentialPreviewFileCount > 0;
+
+    public bool HasNoDifferentialPreviewFiles => DifferentialPreviewFileCount == 0;
+
+    public bool CanConfirmDifferentialPreview => DifferentialPreviewFileCount > 0;
 
     public string Translate(string key)
     {
@@ -687,6 +736,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
+        OnPropertyChanged(nameof(JobNameLengthHint));
         OnPropertyChanged(nameof(SaveJobButtonText));
         ValidateJobFormInput();
     }
@@ -727,7 +777,11 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(DashboardFooterCenterText));
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
+        OnPropertyChanged(nameof(JobNameLengthHint));
         OnPropertyChanged(nameof(SaveJobButtonText));
+        OnPropertyChanged(nameof(DifferentialPreviewTitle));
+        OnPropertyChanged(nameof(DifferentialPreviewMessage));
+        OnPropertyChanged(nameof(DifferentialPreviewEmptyText));
         UpdateSettingsDirtyState();
     }
 
@@ -776,6 +830,25 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(EncryptionStatusText));
         UpdateSettingsDirtyState();
+    }
+
+    partial void OnSettingsFeedbackMessageChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasSettingsFeedbackMessage));
+        OnPropertyChanged(nameof(IsSettingsFeedbackError));
+    }
+
+    partial void OnDifferentialPreviewFileCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(HasDifferentialPreviewFiles));
+        OnPropertyChanged(nameof(HasNoDifferentialPreviewFiles));
+        OnPropertyChanged(nameof(CanConfirmDifferentialPreview));
+        OnPropertyChanged(nameof(DifferentialPreviewMessage));
+    }
+
+    partial void OnIsSettingsFeedbackSuccessChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsSettingsFeedbackError));
     }
 
     partial void OnCryptoKeyChanged(string value)
@@ -904,7 +977,10 @@ public partial class MainWindowViewModel : ViewModelBase
         isRefreshingStates = true;
         try
         {
+            var previousStates = States.ToList();
             States = new ObservableCollection<BackupState>(await stateManager.GetStatesAsync());
+            NotifyCompletedJobs(previousStates, States);
+            NotifyErroredJobs(previousStates, States);
             OnPropertyChanged(nameof(ActiveStatesCount));
             OnPropertyChanged(nameof(FinishedStatesCount));
             OnPropertyChanged(nameof(PausedStatesCount));
@@ -983,10 +1059,12 @@ public partial class MainWindowViewModel : ViewModelBase
             IsSettingsDirty = false;
             var feedbackKey = string.IsNullOrWhiteSpace(settings.CryptoSoftPath)
                 ? "SettingsEncryptionDisabledMessage"
+                : HasInvalidCryptoSoftPath(settings)
+                    ? "CryptoSoftPathInvalidButSaved"
                 : "SettingsChangesApplied";
             StatusMessage = Translate(feedbackKey);
             SettingsFeedbackMessage = Translate(feedbackKey);
-            IsSettingsFeedbackSuccess = true;
+            IsSettingsFeedbackSuccess = feedbackKey == "SettingsChangesApplied";
         });
     }
 
@@ -1038,12 +1116,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         await RunBusyAsync(async () =>
         {
-            if (HasRunningJobs)
-            {
-                StatusMessage = Translate("ExecutionAlreadyInProgress");
-                return;
-            }
-
             var jobsToRun = GetSelectedJobsOrFallback();
             if (jobsToRun.Count == 0)
             {
@@ -1051,7 +1123,26 @@ public partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            await ExecuteJobsAsync(jobsToRun);
+            var resumedAny = false;
+            foreach (var job in jobsToRun.Where(IsPausedJob))
+            {
+                resumedAny |= await backupManager.ResumeJobAsync(job.Name);
+            }
+
+            if (resumedAny)
+            {
+                StatusMessage = Translate("ExecutionResumed");
+                await RefreshStatesAsync();
+                return;
+            }
+
+            if (HasActiveRunningJobs)
+            {
+                StatusMessage = Translate("ExecutionAlreadyInProgress");
+                return;
+            }
+
+            await StartJobsWithDifferentialPreviewAsync(jobsToRun);
             await RefreshStatesAsync();
         });
     }
@@ -1072,7 +1163,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            await ExecuteJobsAsync(Jobs.ToList());
+            await StartJobsWithDifferentialPreviewAsync(Jobs.ToList());
             await RefreshStatesAsync();
         });
     }
@@ -1181,13 +1272,24 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedJob = job;
         await RunBusyAsync(async () =>
         {
-            if (HasRunningJobs)
+            if (IsPausedJob(job))
+            {
+                if (await backupManager.ResumeJobAsync(job.Name))
+                {
+                    StatusMessage = Translate("ExecutionResumed");
+                    await RefreshStatesAsync();
+                }
+
+                return;
+            }
+
+            if (HasActiveRunningJobs)
             {
                 StatusMessage = Translate("ExecutionAlreadyInProgress");
                 return;
             }
 
-            await ExecuteJobsAsync([job]);
+            await StartJobsWithDifferentialPreviewAsync([job]);
             await RefreshStatesAsync();
         });
     }
@@ -1378,12 +1480,9 @@ public partial class MainWindowViewModel : ViewModelBase
             return settings;
         }
 
-        if (!File.Exists(settings.CryptoSoftPath) && !Directory.Exists(settings.CryptoSoftPath))
+        if (HasInvalidCryptoSoftPath(settings))
         {
-            throw new InvalidOperationException(string.Format(
-                CultureInfo.InvariantCulture,
-                Translate("CryptoSoftPathNotFound"),
-                settings.CryptoSoftPath));
+            return settings;
         }
 
         if (string.IsNullOrWhiteSpace(settings.CryptoKey))
@@ -1394,11 +1493,17 @@ public partial class MainWindowViewModel : ViewModelBase
         return settings;
     }
 
+    private static bool HasInvalidCryptoSoftPath(AppSettings settings)
+    {
+        return !string.IsNullOrWhiteSpace(settings.CryptoSoftPath)
+            && !CryptoSoftEncryptionService.CanResolveConfiguredPath(settings.CryptoSoftPath);
+    }
+
     private static int ParseLargeFileThresholdKo(string rawValue)
     {
         return int.TryParse(rawValue?.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var thresholdKo)
             ? Math.Max(1, thresholdKo)
-            : 1;
+            : 20000;
     }
 
     private int ParseValidatedLargeFileThresholdKo(string rawValue)
@@ -1547,9 +1652,10 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         IsMultiRunConfirmationVisible = false;
+        ClearMultiSelectionState();
         await RunBusyAsync(async () =>
         {
-            await ExecuteJobsAsync(jobsToRun);
+            await StartJobsWithDifferentialPreviewAsync(jobsToRun);
             await RefreshStatesAsync();
         });
     }
@@ -1557,6 +1663,47 @@ public partial class MainWindowViewModel : ViewModelBase
     private void CancelMultiRun()
     {
         IsMultiRunConfirmationVisible = false;
+    }
+
+    private void ClearMultiSelectionState()
+    {
+        selectedJobs.Clear();
+        RebuildJobListRows();
+        OnPropertyChanged(nameof(JobsSelectedCountText));
+        OnPropertyChanged(nameof(CanRunSelectedJob));
+        OnPropertyChanged(nameof(CanPauseSelectedJob));
+        OnPropertyChanged(nameof(CanStopSelectedJob));
+    }
+
+    private async Task ConfirmDifferentialPreviewAsync()
+    {
+        var job = pendingDifferentialPreviewJob;
+        IsDifferentialPreviewVisible = false;
+
+        if (job is null)
+        {
+            return;
+        }
+
+        pendingDifferentialPreviewJob = null;
+
+        await RunBusyAsync(async () =>
+        {
+            await ExecuteJobsCoreAsync([job]);
+            await RefreshStatesAsync();
+        });
+        ShowNextDifferentialPreviewOrClose();
+    }
+
+    private void CancelDifferentialPreview()
+    {
+        var canceledJobName = pendingDifferentialPreviewJob?.Name;
+        pendingDifferentialPreviewJob = null;
+        IsDifferentialPreviewVisible = false;
+        StatusMessage = string.IsNullOrWhiteSpace(canceledJobName)
+            ? Translate("DifferentialPreviewCanceled")
+            : string.Format(CultureInfo.InvariantCulture, Translate("DifferentialPreviewCanceledForJob"), canceledJobName);
+        ShowNextDifferentialPreviewOrClose();
     }
 
     private void PrepareCreateJob()
@@ -1683,7 +1830,7 @@ public partial class MainWindowViewModel : ViewModelBase
         IsSettingsLeaveConfirmationVisible = false;
     }
 
-    private async Task ExecuteJobsAsync(IReadOnlyList<BackupJob> jobsToRun)
+    private async Task ExecuteJobsCoreAsync(IReadOnlyList<BackupJob> jobsToRun)
     {
         await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
         var duplicateTargetDirectory = FindDuplicateTargetDirectory(jobsToRun);
@@ -1735,6 +1882,107 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = resumedAny && string.IsNullOrWhiteSpace(firstFailureMessage)
             ? Translate("ExecutionResumed")
             : Translate("ExecutionStarted");
+
+        if (!string.IsNullOrWhiteSpace(firstFailureMessage))
+        {
+            AppendStatusMessageLine(firstFailureMessage);
+        }
+    }
+
+    private async Task StartJobsWithDifferentialPreviewAsync(IReadOnlyList<BackupJob> jobsToRun)
+    {
+        await settingsRepository.SaveAsync(BuildValidatedSettingsFromViewModel());
+        var duplicateTargetDirectory = FindDuplicateTargetDirectory(jobsToRun);
+        if (!string.IsNullOrWhiteSpace(duplicateTargetDirectory))
+        {
+            StatusMessage = string.Format(
+                CultureInfo.InvariantCulture,
+                Translate("DuplicateTargetDirectorySelected"),
+                duplicateTargetDirectory);
+            return;
+        }
+
+        pendingDifferentialPreviewQueue.Clear();
+        var directStartJobs = new List<BackupJob>();
+        var noDifferentFileJobs = new List<string>();
+        string? firstFailureMessage = null;
+
+        foreach (var job in jobsToRun)
+        {
+            if (job.Type != BackupType.Differential || backupManager.IsJobRunning(job.Name))
+            {
+                directStartJobs.Add(job);
+                continue;
+            }
+
+            try
+            {
+                BackupJobService.ValidateJobForExecution(job);
+                var pendingTransfers = BackupPreviewService.GetDifferentialPendingTransfers(job);
+                if (pendingTransfers.Count == 0)
+                {
+                    directStartJobs.Add(job);
+                    noDifferentFileJobs.Add(job.Name);
+                    continue;
+                }
+
+                pendingDifferentialPreviewQueue.Enqueue(new DifferentialPreviewRequest(job, pendingTransfers));
+            }
+            catch (Exception exception)
+            {
+                await backupManager.ReportStartFailureAsync(job, exception);
+                firstFailureMessage ??= TranslateUserFacingMessage(exception);
+            }
+        }
+
+        if (directStartJobs.Count > 0)
+        {
+            await ExecuteJobsCoreAsync(directStartJobs);
+        }
+
+        if (noDifferentFileJobs.Count > 0)
+        {
+            AppendStatusMessageLine(string.Format(
+                CultureInfo.InvariantCulture,
+                Translate("NoDifferentialFilesDetectedForJobs"),
+                string.Join(", ", noDifferentFileJobs)));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(firstFailureMessage) && directStartJobs.Count > 0)
+        {
+            AppendStatusMessageLine(firstFailureMessage);
+        }
+        else if (directStartJobs.Count == 0 && pendingDifferentialPreviewQueue.Count == 0)
+        {
+            StatusMessage = firstFailureMessage ?? Translate("NoJobsToRun");
+        }
+
+        ShowNextDifferentialPreviewOrClose();
+    }
+
+    private void ShowNextDifferentialPreviewOrClose()
+    {
+        if (pendingDifferentialPreviewQueue.Count == 0)
+        {
+            pendingDifferentialPreviewJob = null;
+            DifferentialPreviewJobName = string.Empty;
+            DifferentialPreviewFilesText = string.Empty;
+            DifferentialPreviewFileCount = 0;
+            IsDifferentialPreviewVisible = false;
+            return;
+        }
+
+        var request = pendingDifferentialPreviewQueue.Dequeue();
+        pendingDifferentialPreviewJob = request.Job;
+        DifferentialPreviewJobName = request.Job.Name;
+        DifferentialPreviewFileCount = request.Transfers.Count;
+        DifferentialPreviewFilesText = string.Join(
+            Environment.NewLine,
+            request.Transfers.Select(transfer => transfer.SourceFilePath));
+        IsDifferentialPreviewVisible = true;
+        OnPropertyChanged(nameof(DifferentialPreviewTitle));
+        OnPropertyChanged(nameof(DifferentialPreviewMessage));
+        OnPropertyChanged(nameof(DifferentialPreviewEmptyText));
     }
 
     private static string? FindDuplicateTargetDirectory(IEnumerable<BackupJob> jobs)
@@ -1969,6 +2217,166 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void NotifyCompletedJobs(
+        IReadOnlyCollection<BackupState> previousStates,
+        IReadOnlyCollection<BackupState> currentStates)
+    {
+        if (!hasLoadedStatesOnce)
+        {
+            hasLoadedStatesOnce = true;
+            return;
+        }
+
+        var completionMessages = new List<string>();
+
+        foreach (var state in currentStates)
+        {
+            if (!string.Equals(state.State, "Finished", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var job = Jobs.FirstOrDefault(existing =>
+                string.Equals(existing.Name, state.Name, StringComparison.OrdinalIgnoreCase));
+            if (job is null)
+            {
+                continue;
+            }
+
+            if (WasTerminalStateAlreadyReported(state, "Finished"))
+            {
+                continue;
+            }
+
+            completionMessages.Add(
+                state.TotalFilesToCopy == 0
+                    ? string.Format(
+                        CultureInfo.InvariantCulture,
+                        HasAtLeastOneSourceFile(job.SourceDirectory)
+                            ? Translate("NoFilesChangedMessage")
+                            : Translate("NoFilesToCopyMessage"),
+                        job.Name)
+                    : string.Format(CultureInfo.InvariantCulture, Translate("BackupFinishedForJob"), job.Name));
+        }
+
+        foreach (var message in completionMessages)
+        {
+            AppendStatusMessageLine(message);
+        }
+    }
+
+    private void NotifyErroredJobs(
+        IReadOnlyCollection<BackupState> previousStates,
+        IReadOnlyCollection<BackupState> currentStates)
+    {
+        if (!hasLoadedStatesOnce)
+        {
+            return;
+        }
+
+        var errorMessages = new List<string>();
+
+        foreach (var state in currentStates)
+        {
+            if (!string.Equals(state.State, "Error", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (WasTerminalStateAlreadyReported(state, "Error"))
+            {
+                continue;
+            }
+
+            var sourcePath = string.IsNullOrWhiteSpace(state.CurrentSourceFilePath)
+                ? Translate("NoDataPlaceholder")
+                : state.CurrentSourceFilePath;
+            var destinationPath = string.IsNullOrWhiteSpace(state.CurrentDestinationFilePath)
+                ? Translate("NoDataPlaceholder")
+                : state.CurrentDestinationFilePath;
+            var errorDetail = string.IsNullOrWhiteSpace(state.ErrorMessage)
+                ? Translate("NoDataPlaceholder")
+                : state.ErrorMessage;
+
+            errorMessages.Add(string.Format(
+                CultureInfo.InvariantCulture,
+                Translate("BackupErrorForJobWithPaths"),
+                state.Name,
+                sourcePath,
+                destinationPath,
+                errorDetail));
+        }
+
+        foreach (var message in errorMessages)
+        {
+            AppendStatusMessageLine(message);
+        }
+    }
+
+    private bool WasTerminalStateAlreadyReported(BackupState state, string expectedState)
+    {
+        if (!string.Equals(state.State, expectedState, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (lastReportedTerminalStates.TryGetValue(state.Name, out var lastReported) &&
+            string.Equals(lastReported.State, expectedState, StringComparison.OrdinalIgnoreCase) &&
+            lastReported.Timestamp == state.LastActionTimestamp)
+        {
+            return true;
+        }
+
+        lastReportedTerminalStates[state.Name] = (expectedState, state.LastActionTimestamp);
+        return false;
+    }
+
+    private static bool HasAtLeastOneSourceFile(string sourceSelection)
+    {
+        foreach (var sourcePath in SourceSelectionParser.Parse(sourceSelection))
+        {
+            if (File.Exists(sourcePath))
+            {
+                return true;
+            }
+
+            if (Directory.Exists(sourcePath) &&
+                Directory.EnumerateFiles(sourcePath, "*", SearchOption.AllDirectories).Any())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AppendStatusMessageLine(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        var current = StatusMessage;
+        if (string.IsNullOrWhiteSpace(current) ||
+            string.Equals(current, Translate("StatusReady"), StringComparison.Ordinal))
+        {
+            StatusMessage = message;
+            return;
+        }
+
+        var lines = current
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
+            .ToList();
+
+        if (lines.Contains(message, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        StatusMessage = $"{current}{Environment.NewLine}{message}";
+    }
+
     private static string CreateSettingsSnapshot(AppSettings settings)
     {
         return JsonSerializer.Serialize(new
@@ -2123,6 +2531,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobsStorageUsageText));
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
+        OnPropertyChanged(nameof(JobNameLengthHint));
         OnPropertyChanged(nameof(SaveJobButtonText));
         OnPropertyChanged(nameof(HasJobFormValidationError));
         OnPropertyChanged(nameof(CanRunSelectedJob));
@@ -2162,6 +2571,7 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(JobsStorageUsageText));
         OnPropertyChanged(nameof(JobFormTitle));
         OnPropertyChanged(nameof(JobFormSubtitle));
+        OnPropertyChanged(nameof(JobNameLengthHint));
         OnPropertyChanged(nameof(SaveJobButtonText));
         OnPropertyChanged(nameof(HasJobFormValidationError));
         OnPropertyChanged(nameof(CanRunSelectedJob));
@@ -2170,8 +2580,12 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanPauseAllJobs));
         OnPropertyChanged(nameof(CanStopSelectedJob));
         OnPropertyChanged(nameof(CanStopAllJobs));
+        OnPropertyChanged(nameof(JobFormLeaveConfirmationText));
         OnPropertyChanged(nameof(SettingsLeaveConfirmationText));
         OnPropertyChanged(nameof(MultiRunConfirmationText));
+        OnPropertyChanged(nameof(DifferentialPreviewTitle));
+        OnPropertyChanged(nameof(DifferentialPreviewMessage));
+        OnPropertyChanged(nameof(DifferentialPreviewEmptyText));
         RebuildDashboardRows();
         RebuildJobListRows();
         RebuildStateRows();
@@ -2362,6 +2776,7 @@ public partial class MainWindowViewModel : ViewModelBase
             ArgumentException when exception.Message == "The backup type is invalid." => Translate("BackupTypeInvalid"),
             InvalidOperationException when exception.Message.StartsWith("Backup job not found:", StringComparison.Ordinal) => Translate("BackupJobNotFound"),
             InvalidOperationException when exception.Message.StartsWith("A backup job named", StringComparison.Ordinal) => Translate("BackupNameAlreadyExists"),
+            InvalidOperationException when exception.Message.StartsWith("CryptoSoft path not found:", StringComparison.Ordinal) => FormatMissingPathMessage("CryptoSoftPathNotFound", exception.Message, "CryptoSoft path not found:"),
             InvalidOperationException when exception.Message == "The backup target directory cannot be the same as the source directory." => Translate("SourceTargetSameDirectory"),
             InvalidOperationException when exception.Message == "The backup target directory cannot be inside the source directory." => Translate("TargetInsideSourceDirectory"),
             InvalidOperationException when exception.Message == "The backup target directory cannot contain the source directory." => Translate("TargetContainsSourceDirectory"),
@@ -2397,6 +2812,22 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool CanStopJob(BackupJob? job)
     {
         return IsRunningJob(job);
+    }
+
+    private bool IsPausedJob(BackupJob? job)
+    {
+        if (job is null)
+        {
+            return false;
+        }
+
+        var state = States.FirstOrDefault(existing => string.Equals(existing.Name, job.Name, StringComparison.OrdinalIgnoreCase));
+        return string.Equals(state?.State, "Paused", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsActivelyRunningJob(BackupJob? job)
+    {
+        return IsRunningJob(job) && !IsPausedJob(job);
     }
 
     private bool IsRunningJob(BackupJob? job)
@@ -2472,3 +2903,7 @@ public sealed class JobListRow
 
     public bool IsMarked { get; set; }
 }
+
+sealed record DifferentialPreviewRequest(
+    BackupJob Job,
+    IReadOnlyList<BackupPreviewService.PlannedTransfer> Transfers);

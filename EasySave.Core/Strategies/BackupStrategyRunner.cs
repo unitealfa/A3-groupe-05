@@ -16,11 +16,10 @@ internal static class BackupStrategyRunner
         CancellationToken cancellationToken)
     {
         var targetRoot = Path.GetFullPath(job.TargetDirectory);
-        var sourcePaths = SourceSelectionParser
-            .Parse(job.SourceDirectory)
-            .Select(Path.GetFullPath)
+        var allTransfers = BackupPreviewService
+            .GetPlannedTransfers(job)
+            .Select(transfer => new PlannedTransfer(new FileInfo(transfer.SourceFilePath), transfer.DestinationFilePath))
             .ToList();
-        var allTransfers = BuildTransfers(sourcePaths, targetRoot);
         var plannedFiles = allTransfers
             .Where(transfer => shouldCopy(transfer.SourceFile, new FileInfo(transfer.DestinationPath)))
             .ToList();
@@ -37,6 +36,7 @@ internal static class BackupStrategyRunner
             State = "Active",
             CurrentSourceFilePath = job.SourceDirectory,
             CurrentDestinationFilePath = job.TargetDirectory,
+            ErrorMessage = string.Empty,
             TotalFilesToCopy = plannedFiles.Count,
             TotalFilesSize = totalSize,
             RemainingFiles = plannedFiles.Count,
@@ -100,8 +100,9 @@ internal static class BackupStrategyRunner
                         {
                             hasError = true;
                             state.State = "Error";
+                            state.ErrorMessage = $"Encryption failed with code {encryptionTimeMs}.";
                             status = "Error";
-                            errorMessage = $"Encryption failed with code {encryptionTimeMs}.";
+                            errorMessage = state.ErrorMessage;
                         }
                     }
 
@@ -118,6 +119,7 @@ internal static class BackupStrategyRunner
                     copiedFiles++;
                     remainingSize -= sourceFile.Length;
                     state.State = "Error";
+                    state.ErrorMessage = exception.Message;
                     UpdateProgress(state, plannedFiles.Count, copiedFiles, remainingSize);
                     await context.Logger.LogAsync(CreateLogEntry(job, sourceFile.FullName, destinationPath, sourceFile.Length, ToNegativeMetric(stopwatch.ElapsedMilliseconds), -1, "Error", exception.Message), cancellationToken);
                     await context.StateManager.UpdateAsync(state, cancellationToken);
@@ -142,69 +144,31 @@ internal static class BackupStrategyRunner
         state.State = hasError ? "Error" : "Finished";
         state.CurrentSourceFilePath = job.SourceDirectory;
         state.CurrentDestinationFilePath = job.TargetDirectory;
+        if (!hasError)
+        {
+            state.ErrorMessage = string.Empty;
+        }
         state.RemainingFiles = 0;
-        state.RemainingSize = 0;
+       state.RemainingSize = 0;
         state.Progression = plannedFiles.Count == 0 ? 100 : state.Progression;
         await context.StateManager.UpdateAsync(state, cancellationToken);
-    }
 
-    private static List<PlannedTransfer> BuildTransfers(IReadOnlyList<string> sourcePaths, string targetRoot)
-    {
-        var isMultiSource = sourcePaths.Count > 1;
-        var usedDestinations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var transfers = new List<PlannedTransfer>();
-
-        foreach (var sourcePath in sourcePaths)
+        if (!hasError)
         {
-            if (Directory.Exists(sourcePath))
-            {
-                var sourceRoot = Path.GetFullPath(sourcePath);
-                var rootDirectoryName = Path.GetFileName(Path.TrimEndingDirectorySeparator(sourceRoot));
-
-                foreach (var filePath in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
-                {
-                    var relativePath = Path.GetRelativePath(sourceRoot, filePath);
-                    var destinationPath = isMultiSource
-                        ? Path.Combine(targetRoot, rootDirectoryName, relativePath)
-                        : Path.Combine(targetRoot, relativePath);
-
-                    transfers.Add(new PlannedTransfer(
-                        new FileInfo(filePath),
-                        EnsureUniqueDestinationPath(destinationPath, usedDestinations)));
-                }
-
-                continue;
-            }
-
-            var sourceFile = new FileInfo(sourcePath);
-            var destinationDirectory = isMultiSource
-                ? Path.Combine(targetRoot, sourceFile.Directory?.Name ?? "files")
-                : targetRoot;
-            var fileDestinationPath = Path.Combine(destinationDirectory, sourceFile.Name);
-
-            transfers.Add(new PlannedTransfer(
-                sourceFile,
-                EnsureUniqueDestinationPath(fileDestinationPath, usedDestinations)));
+            await context.Logger.LogAsync(CreateLogEntry(
+                job,
+                job.SourceDirectory,
+                job.TargetDirectory,
+                totalSize,
+                0,
+                0,
+                "Success",
+                plannedFiles.Count == 0
+                    ? allTransfers.Count == 0
+                        ? "Backup launched with no file to copy."
+                        : "No file changed."
+                    : "Backup finished."), cancellationToken);
         }
-
-        return transfers;
-    }
-
-    private static string EnsureUniqueDestinationPath(string destinationPath, ISet<string> usedDestinations)
-    {
-        var candidate = destinationPath;
-        var counter = 2;
-
-        while (!usedDestinations.Add(candidate))
-        {
-            var directory = Path.GetDirectoryName(destinationPath) ?? string.Empty;
-            var filename = Path.GetFileNameWithoutExtension(destinationPath);
-            var extension = Path.GetExtension(destinationPath);
-            candidate = Path.Combine(directory, $"{filename} ({counter}){extension}");
-            counter++;
-        }
-
-        return candidate;
     }
 
     private static void UpdateProgress(BackupState state, int totalFiles, int copiedFiles, long remainingSize)

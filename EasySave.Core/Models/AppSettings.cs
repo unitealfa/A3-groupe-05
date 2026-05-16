@@ -14,7 +14,7 @@ public sealed class AppSettings
 
     public List<string> BusinessSoftwareProcesses { get; set; } = [];
 
-    public int LargeFileThresholdKo { get; set; } = 1;
+    public int LargeFileThresholdKo { get; set; } = 20000;
 
     public string CryptoSoftPath { get; set; } = string.Empty;
 

@@ -23,6 +23,7 @@ public sealed class JsonLoggerService : ILoggerService
     {
         ArgumentNullException.ThrowIfNull(entry);
 
+        Directory.CreateDirectory(logDirectory);
         var logFilePath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
         var writeLock = WriteLocks.GetOrAdd(logFilePath, _ => new SemaphoreSlim(1, 1));
 

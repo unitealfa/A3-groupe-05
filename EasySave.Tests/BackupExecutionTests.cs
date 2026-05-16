@@ -44,9 +44,34 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.Equal(0, state.RemainingFiles);
 
         var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
-        Assert.Equal(2, logEntries.Count);
+        Assert.Equal(3, logEntries.Count);
         Assert.All(logEntries, entry => Assert.Equal("Success", entry.Status));
         Assert.Contains(logEntries, entry => entry.DestinationFilePath.EndsWith(Path.Combine("nested", "child.txt"), StringComparison.Ordinal));
+        Assert.Contains(logEntries, entry => entry.ErrorMessage == "Backup finished.");
+    }
+
+    [Fact]
+    public async Task CompleteBackupRerunAppendsNewLogEntriesOnSecondExecution()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-complete-rerun");
+        var targetDirectory = Path.Combine(testRoot, "target-complete-rerun");
+        var logDirectory = Path.Combine(testRoot, "logs-complete-rerun");
+        var statePath = Path.Combine(testRoot, "state-complete-rerun", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "root.txt"), "root-content");
+
+        var manager = CreateBackupManager(logDirectory, statePath, sourceDirectory, targetDirectory, BackupType.Complete, "Complete Rerun");
+
+        await manager.ExecuteJobAsync(1);
+        var firstRunEntries = await ReadJsonLogEntriesAsync(logDirectory);
+
+        await manager.ExecuteJobAsync(1);
+        var secondRunEntries = await ReadJsonLogEntriesAsync(logDirectory);
+
+        Assert.Equal(2, firstRunEntries.Count);
+        Assert.Equal(4, secondRunEntries.Count);
+        Assert.Equal(2, secondRunEntries.Count(entry => entry.ErrorMessage == "Backup finished."));
     }
 
     [Fact]
@@ -99,10 +124,44 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.Equal(100, state.Progression);
 
         var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
-        Assert.Equal(2, logEntries.Count);
+        Assert.Equal(3, logEntries.Count);
         Assert.DoesNotContain(logEntries, entry => entry.SourceFilePath.EndsWith("unchanged.txt", StringComparison.Ordinal));
         Assert.Contains(logEntries, entry => entry.SourceFilePath.EndsWith("updated.txt", StringComparison.Ordinal));
         Assert.Contains(logEntries, entry => entry.SourceFilePath.EndsWith("missing.txt", StringComparison.Ordinal));
+        Assert.Contains(logEntries, entry => entry.ErrorMessage == "Backup finished.");
+    }
+
+    [Fact]
+    public async Task DifferentialBackupWithoutChangesStillWritesOneSuccessLogEntry()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-differential-no-change");
+        var targetDirectory = Path.Combine(testRoot, "target-differential-no-change");
+        var logDirectory = Path.Combine(testRoot, "logs-differential-no-change");
+        var statePath = Path.Combine(testRoot, "state-differential-no-change", "state.json");
+        Directory.CreateDirectory(sourceDirectory);
+        Directory.CreateDirectory(targetDirectory);
+
+        var sourcePath = Path.Combine(sourceDirectory, "same.txt");
+        var targetPath = Path.Combine(targetDirectory, "same.txt");
+        await File.WriteAllTextAsync(sourcePath, "same-content");
+        await File.WriteAllTextAsync(targetPath, "same-content");
+
+        var synchronizedTime = new DateTime(2026, 4, 26, 10, 0, 0, DateTimeKind.Utc);
+        File.SetLastWriteTimeUtc(sourcePath, synchronizedTime);
+        File.SetLastWriteTimeUtc(targetPath, synchronizedTime);
+
+        var manager = CreateBackupManager(logDirectory, statePath, sourceDirectory, targetDirectory, BackupType.Differential, "No Change Differential");
+
+        await manager.ExecuteJobAsync(1);
+
+        var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
+        var entry = Assert.Single(logEntries);
+        Assert.Equal("Success", entry.Status);
+        Assert.Equal(0, entry.FileSize);
+        Assert.Equal(0, entry.TransferTimeMs);
+        Assert.Equal(0, entry.EncryptionTimeMs);
+        Assert.Equal(sourceDirectory, entry.SourceFilePath);
+        Assert.Equal(targetDirectory, entry.DestinationFilePath);
     }
 
     [Fact]
@@ -122,7 +181,7 @@ public sealed class BackupExecutionTests : IDisposable
         await settingsRepository.SaveAsync(new AppSettings
         {
             EncryptedExtensions = [".txt"],
-            CryptoSoftPath = "CryptoSoft.exe"
+            CryptoSoftPath = FindCryptoSoftProjectPath()
         });
 
         var encryptionService = new FakeEncryptionService(
@@ -145,9 +204,10 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.EndsWith("secret.txt", encryptionService.EncryptedFiles[0], StringComparison.Ordinal);
 
         var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
-        Assert.Equal(2, logEntries.Count);
+        Assert.Equal(3, logEntries.Count);
         Assert.Contains(logEntries, entry => entry.SourceFilePath.EndsWith("secret.txt", StringComparison.Ordinal) && entry.EncryptionTimeMs == 37);
         Assert.Contains(logEntries, entry => entry.SourceFilePath.EndsWith("plain.log", StringComparison.Ordinal) && entry.EncryptionTimeMs == 0);
+        Assert.Contains(logEntries, entry => entry.ErrorMessage == "Backup finished.");
     }
 
     [Fact]
@@ -184,8 +244,9 @@ public sealed class BackupExecutionTests : IDisposable
         Assert.Empty(encryptionService.EncryptedFiles);
 
         var logEntries = await ReadJsonLogEntriesAsync(logDirectory);
-        Assert.Equal(2, logEntries.Count);
+        Assert.Equal(3, logEntries.Count);
         Assert.All(logEntries, entry => Assert.Equal(0, entry.EncryptionTimeMs));
+        Assert.Contains(logEntries, entry => entry.ErrorMessage == "Backup finished.");
     }
 
     [Fact]
@@ -299,7 +360,7 @@ public sealed class BackupExecutionTests : IDisposable
         await settingsRepository.SaveAsync(new AppSettings
         {
             EncryptedExtensions = [".txt"],
-            CryptoSoftPath = "CryptoSoft.exe"
+            CryptoSoftPath = FindCryptoSoftProjectPath()
         });
 
         var manager = CreateConfiguredBackupManager(
@@ -407,6 +468,42 @@ public sealed class BackupExecutionTests : IDisposable
     }
 
     [Fact]
+    public async Task ExecuteJobAsyncRejectsMissingCryptoSoftPathWhenEncryptionIsConfigured()
+    {
+        var sourceDirectory = Path.Combine(testRoot, "source-missing-cryptosoft");
+        var targetDirectory = Path.Combine(testRoot, "target-missing-cryptosoft");
+        var logDirectory = Path.Combine(testRoot, "logs-missing-cryptosoft");
+        var statePath = Path.Combine(testRoot, "state-missing-cryptosoft", "state.json");
+        var settingsPath = Path.Combine(testRoot, "config-missing-cryptosoft", "settings.json");
+        Directory.CreateDirectory(sourceDirectory);
+        Directory.CreateDirectory(targetDirectory);
+
+        await File.WriteAllTextAsync(Path.Combine(sourceDirectory, "secret.txt"), "content");
+
+        var settingsRepository = new AppSettingsRepository(settingsPath);
+        await settingsRepository.SaveAsync(new AppSettings
+        {
+            EncryptedExtensions = [".txt"],
+            CryptoSoftPath = Path.Combine(testRoot, "missing", "CryptoSoft.exe"),
+            CryptoKey = "test-key"
+        });
+
+        var manager = CreateConfiguredBackupManager(
+            logDirectory,
+            statePath,
+            sourceDirectory,
+            targetDirectory,
+            BackupType.Complete,
+            "Missing CryptoSoft Job",
+            settingsRepository,
+            new FakeBusinessSoftwareDetector([]),
+            new FakeEncryptionService(_ => 0));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => manager.ExecuteJobAsync(1));
+        Assert.StartsWith("CryptoSoft path not found:", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CompleteBackupCopiesMultipleSourceFilesWithoutCollisions()
     {
         var sourceOne = Path.Combine(testRoot, "source-multi-1");
@@ -455,7 +552,7 @@ public sealed class BackupExecutionTests : IDisposable
         await settingsRepository.SaveAsync(new AppSettings
         {
             EncryptedExtensions = ["*"],
-            CryptoSoftPath = "CryptoSoft.exe"
+            CryptoSoftPath = FindCryptoSoftProjectPath()
         });
 
         var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-parallel", "jobs.json"));
@@ -513,7 +610,7 @@ public sealed class BackupExecutionTests : IDisposable
         {
             EncryptedExtensions = ["*"],
             PriorityExtensions = [".prio"],
-            CryptoSoftPath = "CryptoSoft.exe"
+            CryptoSoftPath = FindCryptoSoftProjectPath()
         });
 
         var repository = new BackupJobRepository(Path.Combine(testRoot, "jobs-priority", "jobs.json"));
@@ -924,6 +1021,23 @@ public sealed class BackupExecutionTests : IDisposable
         }
 
         throw new TimeoutException("Condition was not met before timeout.");
+    }
+
+    private static string FindCryptoSoftProjectPath()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            var candidate = Path.Combine(current.FullName, "CryptoSoft", "CryptoSoft.csproj");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("CryptoSoft project was not found from the test execution directory.");
     }
 
     public void Dispose()

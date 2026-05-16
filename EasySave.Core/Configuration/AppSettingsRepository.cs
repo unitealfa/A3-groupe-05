@@ -77,7 +77,7 @@ public sealed class AppSettingsRepository
         settings.LogFormatName = string.Equals(settings.LogFormatName, "xml", StringComparison.OrdinalIgnoreCase) ? "xml" : "json";
         settings.EncryptedExtensions = settings.GetNormalizedEncryptedExtensions().ToList();
         settings.PriorityExtensions = settings.GetNormalizedPriorityExtensions().ToList();
-        settings.LargeFileThresholdKo = Math.Max(1, settings.LargeFileThresholdKo);
+        settings.LargeFileThresholdKo = settings.LargeFileThresholdKo <= 0 ? 20000 : settings.LargeFileThresholdKo;
         settings.BusinessSoftwareProcesses = settings.GetNormalizedBusinessSoftwareProcesses().ToList();
         settings.CryptoKey = string.IsNullOrWhiteSpace(settings.CryptoKey) ? "EasySave" : settings.CryptoKey.Trim();
         settings.CryptoSoftPath = settings.CryptoSoftPath?.Trim() ?? string.Empty;

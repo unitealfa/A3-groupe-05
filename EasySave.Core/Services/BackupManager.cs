@@ -7,6 +7,7 @@ namespace EasySave.Core.Services;
 
 public sealed class BackupManager
 {
+    private const string CryptoSoftPathNotFoundMessage = "CryptoSoft path not found: ";
     private readonly object executionRegistryLock = new();
     private readonly BackupJobService jobService;
     private readonly StateManager stateManager;
@@ -238,6 +239,7 @@ public sealed class BackupManager
         BackupJobService.ValidateJobForExecution(job);
 
         var settings = await LoadSettingsAsync(cancellationToken);
+        ValidateEncryptionConfigurationForExecution(settings);
         var session = CreateOrReplaceSession(job.Name);
         var linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, session.CancellationTokenSource.Token);
 
@@ -291,6 +293,7 @@ public sealed class BackupManager
                 State = "Error",
                 CurrentSourceFilePath = job.SourceDirectory,
                 CurrentDestinationFilePath = job.TargetDirectory,
+                ErrorMessage = exception.Message,
                 TotalFilesToCopy = 0,
                 TotalFilesSize = 0,
                 RemainingFiles = 0,
@@ -329,6 +332,26 @@ public sealed class BackupManager
         return settingsRepository is null
             ? new AppSettings()
             : await settingsRepository.LoadAsync(cancellationToken);
+    }
+
+    private static void ValidateEncryptionConfigurationForExecution(AppSettings settings)
+    {
+        if (!settings.IsEncryptionEnabled)
+        {
+            return;
+        }
+
+        if (settings.GetNormalizedEncryptedExtensions().Count == 0)
+        {
+            return;
+        }
+
+        if (CryptoSoftEncryptionService.CanResolveConfiguredPath(settings.CryptoSoftPath))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(CryptoSoftPathNotFoundMessage + settings.CryptoSoftPath);
     }
 
     private BackupExecutionSession CreateOrReplaceSession(string jobName)

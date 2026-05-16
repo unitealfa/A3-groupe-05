@@ -379,6 +379,29 @@ public sealed class BackupInfrastructureTests : IDisposable
     }
 
     [Fact]
+    public async Task JsonLoggerServiceRecreatesMissingLogsDirectory()
+    {
+        var logDirectory = Path.Combine(testRoot, "logs-recreated");
+        var logger = new JsonLoggerService(logDirectory);
+        Directory.Delete(logDirectory, recursive: true);
+
+        await logger.LogAsync(new LogEntry
+        {
+            Timestamp = DateTime.Now,
+            BackupName = "Job Recreated",
+            SourceFilePath = "source.txt",
+            DestinationFilePath = "target.txt",
+            FileSize = 10,
+            TransferTimeMs = 5,
+            EncryptionTimeMs = 0,
+            Status = "Success"
+        });
+
+        var logPath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.json");
+        Assert.True(File.Exists(logPath));
+    }
+
+    [Fact]
     public async Task XmlLoggerServiceCreatesDailyXmlLogWithMainFields()
     {
         var logDirectory = Path.Combine(testRoot, "xml-logs");
@@ -412,6 +435,29 @@ public sealed class BackupInfrastructureTests : IDisposable
         Assert.Equal("78", logEntry.Element("TransferTimeMs")?.Value);
         Assert.Equal("12", logEntry.Element("EncryptionTimeMs")?.Value);
         Assert.Equal("Success", logEntry.Element("Status")?.Value);
+    }
+
+    [Fact]
+    public async Task XmlLoggerServiceRecreatesMissingLogsDirectory()
+    {
+        var logDirectory = Path.Combine(testRoot, "xml-logs-recreated");
+        var logger = new XmlLoggerService(logDirectory);
+        Directory.Delete(logDirectory, recursive: true);
+
+        await logger.LogAsync(new LogEntry
+        {
+            Timestamp = DateTime.Now,
+            BackupName = "Job XML Recreated",
+            SourceFilePath = "source.txt",
+            DestinationFilePath = "target.txt",
+            FileSize = 10,
+            TransferTimeMs = 5,
+            EncryptionTimeMs = 0,
+            Status = "Success"
+        });
+
+        var logPath = Path.Combine(logDirectory, $"{DateTime.Now:yyyy-MM-dd}.xml");
+        Assert.True(File.Exists(logPath));
     }
 
     public void Dispose()

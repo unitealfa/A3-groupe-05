@@ -21,4 +21,6 @@ public sealed class BackupState
     public string CurrentSourceFilePath { get; set; } = string.Empty;
 
     public string CurrentDestinationFilePath { get; set; } = string.Empty;
+
+    public string ErrorMessage { get; set; } = string.Empty;
 }
