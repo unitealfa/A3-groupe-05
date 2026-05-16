@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -250,7 +251,7 @@ public partial class SourceSelectionWindow : Window
                 return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             }
 
-            var content = File.ReadAllText(resourcePath);
+            var content = File.ReadAllText(resourcePath, Encoding.UTF8);
             return JsonSerializer.Deserialize<Dictionary<string, string>>(content, JsonOptions)
                 ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
